@@ -1,0 +1,28 @@
+{
+  "name": "bude-delivery-platform",
+  "version": "1.0.0",
+  "description": "Bude Delivery - Modern B2B/B2C Logistics & Delivery Platform for Telegram WebApp",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "prisma:generate": "npm --prefix backend run prisma:generate",
+    "seed": "npm --prefix backend run seed"
+  },
+  "keywords": [
+    "telegram-web-app",
+    "twa",
+    "mini-app",
+    "logistics",
+    "delivery",
+    "b2b",
+    "b2c",
+    "react",
+    "express",
+    "socket.io",
+    "postgresql",
+    "prisma"
+  ],
+  "author": "Bude Delivery Team",
+  "license": "MIT"
+}
