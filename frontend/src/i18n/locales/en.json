@@ -36,7 +36,13 @@
     "switch_to_login": "Sign in",
     "select_role_google_title": "Choose role for your Google account",
     "logout": "Log Out",
-    "profile": "My Profile"
+    "profile": "My Profile",
+    "demo_presentation_title": "Presentation & Showcase Mode",
+    "demo_presentation_subtitle": "Enter with pre-populated products and orders for client demos:",
+    "demo_receiver_btn": "Receiver Panel",
+    "demo_receiver_desc": "Catalog, cart, order, live tracking",
+    "demo_supplier_btn": "Supplier Panel",
+    "demo_supplier_desc": "Product inventory, courier dispatch"
   },
   "receiver": {
     "suppliers_title": "Active Suppliers",

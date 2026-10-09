@@ -6,7 +6,7 @@ import { changeLanguage } from '../../i18n';
 import { 
   Truck, ShoppingBag, User as UserIcon, 
   CheckCircle2, ArrowRight, Mail, Lock, Eye, EyeOff, 
-  AlertCircle, X 
+  AlertCircle, X, Sparkles 
 } from 'lucide-react';
 import { hapticImpact, hapticSelection } from '../../utils/telegram';
 
@@ -601,25 +601,57 @@ export const AuthScreen: React.FC = () => {
             </motion.form>
           )}
 
-          {/* Dev Test Buttons */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center space-y-2">
-            <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">
-              {t('auth.dev_mode_title')}
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => loginWithDevRole('SUPPLIER')}
-                className="py-1.5 px-2 rounded-lg text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 transition"
-              >
-                📦 Ta'minotchi (Demo)
-              </button>
+          {/* Presentation & Demo Showcase for Client Pitches (Fully Decoupled from Real DB) */}
+          <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-brand-500" />
+                {t('auth.demo_presentation_title')}
+              </span>
+              <span className="text-[9px] text-brand-600 dark:text-brand-400 font-bold bg-brand-50 dark:bg-brand-950/60 px-2 py-0.5 rounded-full border border-brand-200/60 dark:border-brand-800/60">
+                Demo
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+              {t('auth.demo_presentation_subtitle')}
+            </p>
+            <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => loginWithDevRole('RECEIVER')}
-                className="py-1.5 px-2 rounded-lg text-[10px] font-semibold bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 border border-teal-200 dark:border-teal-800 transition"
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-brand-500/50 hover:shadow-sm transition text-left group"
               >
-                🛒 Qabul qiluvchi (Demo)
+                <div className="flex items-center justify-between mb-1">
+                  <div className="w-6 h-6 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-teal-600 flex items-center justify-center group-hover:scale-105 transition">
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                  </div>
+                  <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition" />
+                </div>
+                <div className="font-bold text-[11px] text-slate-800 dark:text-white">
+                  {t('auth.demo_receiver_btn')}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                  {t('auth.demo_receiver_desc')}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => loginWithDevRole('SUPPLIER')}
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-brand-500/50 hover:shadow-sm transition text-left group"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition">
+                    <Truck className="w-3.5 h-3.5" />
+                  </div>
+                  <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition" />
+                </div>
+                <div className="font-bold text-[11px] text-slate-800 dark:text-white">
+                  {t('auth.demo_supplier_btn')}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                  {t('auth.demo_supplier_desc')}
+                </div>
               </button>
             </div>
           </div>

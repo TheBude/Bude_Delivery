@@ -36,7 +36,13 @@
     "switch_to_login": "Войти в систему",
     "select_role_google_title": "Выберите роль для аккаунта Google",
     "logout": "Выйти",
-    "profile": "Мой профиль"
+    "profile": "Мой профиль",
+    "demo_presentation_title": "Режим презентации (Демо)",
+    "demo_presentation_subtitle": "Войдите с готовыми товарами и заказами для демонстрации клиентам:",
+    "demo_receiver_btn": "Панель покупателя",
+    "demo_receiver_desc": "Каталог, корзина, заказ, трекинг",
+    "demo_supplier_btn": "Панель поставщика",
+    "demo_supplier_desc": "Управление товарами, курьер, статусы"
   },
   "receiver": {
     "suppliers_title": "Активные поставщики",

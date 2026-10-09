@@ -1,3 +1,5 @@
+import { demoStore } from './demoStore';
+
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
 export const getToken = (): string | null => {
@@ -10,6 +12,11 @@ export const setToken = (token: string) => {
 
 export const removeToken = () => {
   localStorage.removeItem('bude_token');
+};
+
+export const isDemoSession = (): boolean => {
+  const token = getToken();
+  return Boolean(token && token.startsWith('demo_'));
 };
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -39,11 +46,24 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   auth: {
-    validateTelegram: (initData: string) =>
-      request<any>('/auth/telegram-validate', {
+    demoLogin: (role: 'SUPPLIER' | 'RECEIVER') => {
+      const res = demoStore.loginRole(role);
+      setToken(res.token);
+      return Promise.resolve(res);
+    },
+    resetDemo: () => {
+      demoStore.resetToDefault();
+      return Promise.resolve();
+    },
+    validateTelegram: (initData: string) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.getMe());
+      }
+      return request<any>('/auth/telegram-validate', {
         method: 'POST',
         body: JSON.stringify({ initData }),
-      }),
+      });
+    },
     register: (userData: any) =>
       request<any>('/auth/register', {
         method: 'POST',
@@ -64,79 +84,150 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    devLogin: (role: 'SUPPLIER' | 'RECEIVER') =>
-      request<any>('/auth/dev-login', {
-        method: 'POST',
-        body: JSON.stringify({ role }),
-      }),
-    getMe: () => request<any>('/auth/me'),
-    updateProfile: (profile: any) =>
-      request<any>('/auth/profile', {
+    devLogin: (role: 'SUPPLIER' | 'RECEIVER') => {
+      // In presentation mode, dev login routes to offline demo store directly
+      return api.auth.demoLogin(role);
+    },
+    getMe: () => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.getMe());
+      }
+      return request<any>('/auth/me');
+    },
+    updateProfile: (profile: any) => {
+      if (isDemoSession()) {
+        return Promise.resolve({ success: true });
+      }
+      return request<any>('/auth/profile', {
         method: 'PUT',
         body: JSON.stringify(profile),
-      }),
+      });
+    },
   },
   suppliers: {
     getAll: (params?: { q?: string; free_delivery?: boolean }) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.getSuppliers(params));
+      }
       const search = new URLSearchParams();
       if (params?.q) search.set('q', params.q);
       if (params?.free_delivery) search.set('free_delivery', 'true');
       const qs = search.toString();
       return request<any[]>(`/suppliers${qs ? `?${qs}` : ''}`);
     },
-    getById: (id: string) => request<any>(`/suppliers/${id}`),
-    updateSettings: (settings: { company_name?: string; delivery_fee?: number; is_free_delivery?: boolean }) =>
-      request<any>('/suppliers/settings', {
+    getById: (id: string) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.getSupplierById(id));
+      }
+      return request<any>(`/suppliers/${id}`);
+    },
+    updateSettings: (settings: { company_name?: string; delivery_fee?: number; is_free_delivery?: boolean }) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.updateSupplierSettings(settings));
+      }
+      return request<any>('/suppliers/settings', {
         method: 'PUT',
         body: JSON.stringify(settings),
-      }),
+      });
+    },
   },
   products: {
-    getBySupplier: (supplierId: string, all = false) =>
-      request<any[]>(`/products/supplier/${supplierId}${all ? '?all=true' : ''}`),
-    create: (product: any) =>
-      request<any>('/products', {
+    getBySupplier: (supplierId: string, all = false) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.getProductsBySupplier(supplierId, all));
+      }
+      return request<any[]>(`/products/supplier/${supplierId}${all ? '?all=true' : ''}`);
+    },
+    create: (product: any) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.createProduct(product));
+      }
+      return request<any>('/products', {
         method: 'POST',
         body: JSON.stringify(product),
-      }),
-    update: (id: string, product: any) =>
-      request<any>(`/products/${id}`, {
+      });
+    },
+    update: (id: string, product: any) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.updateProduct(id, product));
+      }
+      return request<any>(`/products/${id}`, {
         method: 'PUT',
         body: JSON.stringify(product),
-      }),
-    toggleAvailability: (id: string, is_available?: boolean) =>
-      request<any>(`/products/${id}/availability`, {
+      });
+    },
+    toggleAvailability: (id: string, is_available?: boolean) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.toggleProductAvailability(id, is_available));
+      }
+      return request<any>(`/products/${id}/availability`, {
         method: 'PATCH',
         body: JSON.stringify({ is_available }),
-      }),
-    delete: (id: string) =>
-      request<any>(`/products/${id}`, {
+      });
+    },
+    delete: (id: string) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.deleteProduct(id));
+      }
+      return request<any>(`/products/${id}`, {
         method: 'DELETE',
-      }),
+      });
+    },
   },
   orders: {
-    create: (orderData: any) =>
-      request<any>('/orders', {
+    create: (orderData: any) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.createOrder(orderData));
+      }
+      return request<any>('/orders', {
         method: 'POST',
         body: JSON.stringify(orderData),
-      }),
-    getReceiverOrders: () => request<any[]>('/orders/receiver'),
-    getSupplierOrders: () => request<any[]>('/orders/supplier'),
-    getById: (id: string) => request<any>(`/orders/${id}`),
-    accept: (id: string, courier: { vehicle_model: string; vehicle_plate_number: string; driver_name: string; driver_phone: string }) =>
-      request<any>(`/orders/${id}/accept`, {
+      });
+    },
+    getReceiverOrders: () => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.getReceiverOrders());
+      }
+      return request<any[]>('/orders/receiver');
+    },
+    getSupplierOrders: () => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.getSupplierOrders());
+      }
+      return request<any[]>('/orders/supplier');
+    },
+    getById: (id: string) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.getOrderById(id));
+      }
+      return request<any>(`/orders/${id}`);
+    },
+    accept: (id: string, courier: { vehicle_model: string; vehicle_plate_number: string; driver_name: string; driver_phone: string }) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.acceptOrder(id, courier));
+      }
+      return request<any>(`/orders/${id}/accept`, {
         method: 'POST',
         body: JSON.stringify(courier),
-      }),
-    updateStatus: (id: string, status: string) =>
-      request<any>(`/orders/${id}/status`, {
+      });
+    },
+    updateStatus: (id: string, status: string) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.updateOrderStatus(id, status));
+      }
+      return request<any>(`/orders/${id}/status`, {
         method: 'POST',
         body: JSON.stringify({ status }),
-      }),
-    reject: (id: string, rejection_reason: string) =>
-      request<any>(`/orders/${id}/reject`, {
+      });
+    },
+    reject: (id: string, rejection_reason: string) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.rejectOrder(id, rejection_reason));
+      }
+      return request<any>(`/orders/${id}/reject`, {
         method: 'POST',
         body: JSON.stringify({ rejection_reason }),
-      }),
+      });
+    },
   },
 };

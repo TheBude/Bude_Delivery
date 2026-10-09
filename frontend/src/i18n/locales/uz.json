@@ -36,7 +36,13 @@
     "switch_to_login": "Tizimga kiring",
     "select_role_google_title": "Google hisobingiz uchun rolni tanlang",
     "logout": "Chiqish",
-    "profile": "Mening profilim"
+    "profile": "Mening profilim",
+    "demo_presentation_title": "Taqdimot & Namoyish Rejimi",
+    "demo_presentation_subtitle": "Mijozlarga ko'rsatish uchun tayyor namunaviy tovarlar va buyurtmalar bilan kiring:",
+    "demo_receiver_btn": "Xaridor paneli",
+    "demo_receiver_desc": "Katalog, savat, buyurtma, monitoring",
+    "demo_supplier_btn": "Ta'minotchi paneli",
+    "demo_supplier_desc": "Tovarlar, mavjudlik tugmasi, kuryer biriktirish"
   },
   "receiver": {
     "suppliers_title": "Faol Ta'minotchilar",
