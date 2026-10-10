@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useCart } from '../../context/CartContext';
 import { api } from '../../api/client';
 import { LocationPicker } from '../common/LocationPicker';
 import { ArrowLeft, Clock, FileText, ShoppingBag, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { hapticImpact, hapticNotification, hapticSelection } from '../../utils/telegram';
+import { hapticImpact, hapticNotification, hapticSelection, bindTelegramBackButton } from '../../utils/telegram';
 
 interface CartCheckoutModalProps {
   onClose: () => void;
@@ -34,6 +34,10 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    return bindTelegramBackButton(onClose);
+  }, [onClose]);
 
   const handleLocationChange = (newLat: number, newLng: number, newAddress: string) => {
     setLat(newLat);

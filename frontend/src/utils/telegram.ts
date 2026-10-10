@@ -120,3 +120,93 @@ export const playNotificationSound = () => {
     console.warn('Audio playback not permitted or failed', err);
   }
 };
+
+/**
+ * Bind Telegram native BackButton for modals / detail views
+ */
+export const bindTelegramBackButton = (onBack: () => void): (() => void) => {
+  const tg = getTelegramWebApp();
+  if (tg?.BackButton) {
+    try {
+      tg.BackButton.show();
+      const handleClick = () => {
+        hapticImpact('light');
+        onBack();
+      };
+      tg.BackButton.onClick(handleClick);
+      return () => {
+        try {
+          tg.BackButton.offClick(handleClick);
+          tg.BackButton.hide();
+        } catch (e) {}
+      };
+    } catch (e) {
+      console.warn('Telegram BackButton setup error', e);
+    }
+  }
+  return () => {};
+};
+
+/**
+ * Copy text to clipboard safely across modern browsers & Telegram WebViews
+ */
+export const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } else {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      textArea.remove();
+      return successful;
+    }
+  } catch (err) {
+    console.warn('Copy to clipboard failed', err);
+    return false;
+  }
+};
+
+/**
+ * Formats a clean printable/shareable invoice receipt text for Telegram/SMS
+ */
+export const formatOrderReceiptText = (order: any): string => {
+  const orderNum = (order.id || '').slice(-6).toUpperCase();
+  const dateStr = new Date(order.created_at || Date.now()).toLocaleString('uz-UZ');
+  const itemsText = (order.items || [])
+    .map(
+      (item: any, idx: number) =>
+        `  ${idx + 1}. ${item.product?.name || 'Tovar'} × ${item.quantity} = ${(
+          Number(item.price_at_order) * item.quantity
+        ).toLocaleString()} so'm`
+    )
+    .join('\n');
+
+  let driverText = '';
+  if (order.delivery) {
+    driverText = `\n🚚 Haydovchi: ${order.delivery.driver_name} (${order.delivery.driver_phone})\n🚗 Transport: ${order.delivery.vehicle_model} [${order.delivery.vehicle_plate_number}]`;
+  }
+
+  return `📦 BUDE DELIVERY — CHEK #${orderNum}
+━━━━━━━━━━━━━━━━━━━━
+📅 Sana: ${dateStr}
+🏪 Ta'minotchi: ${order.supplier?.company_name || "Bude Hamkor"}
+📍 Manzil: ${order.delivery_address}
+🕒 Vaqt oralig'i: ${order.delivery_time_slot}
+📌 Holat: ${order.status}${driverText}
+
+🛍 BUYURTMA TARKIBI:
+${itemsText}
+
+💰 YAKUNIY TO'LOV: ${Number(order.total_price).toLocaleString()} so'm
+━━━━━━━━━━━━━━━━━━━━
+Rahmat! Bude Delivery tizimi orqali buyurtma berildi.`;
+};
+

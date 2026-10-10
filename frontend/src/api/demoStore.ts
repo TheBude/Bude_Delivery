@@ -408,6 +408,21 @@ export const demoStore = {
     }
   },
 
+  updateProfile(profile: Partial<DemoUser>) {
+    const userKey = state.activeRole === 'SUPPLIER' ? 'usr_demo_supplier' : 'usr_demo_receiver';
+    state.users[userKey] = {
+      ...state.users[userKey],
+      ...profile,
+    };
+    saveState(state);
+    return {
+      success: true,
+      user: state.users[userKey],
+      supplier: state.activeRole === 'SUPPLIER' ? state.suppliers[0] : null,
+    };
+  },
+
+
   // Suppliers
   getSuppliers(params?: { q?: string; free_delivery?: boolean }) {
     let list = state.suppliers.map((sup) => {
@@ -654,4 +669,20 @@ export const demoStore = {
 
     return { order: state.orders[idx] };
   },
+
+  cancelOrder(id: string, reason?: string) {
+    const idx = state.orders.findIndex((o) => o.id === id);
+    if (idx === -1) throw new Error('Buyurtma topilmadi');
+
+    if (state.orders[idx].status !== 'PENDING') {
+      throw new Error('Faqat kutilayotgan buyurtmani bekor qilish mumkin');
+    }
+
+    state.orders[idx].status = 'REJECTED';
+    state.orders[idx].rejection_reason = reason || 'Xaridor tomonidan bekor qilindi';
+    saveState(state);
+
+    return { order: state.orders[idx] };
+  },
 };
+

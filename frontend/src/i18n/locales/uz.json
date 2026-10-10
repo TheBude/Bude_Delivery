@@ -86,7 +86,10 @@
     "driver_name": "Haydovchi",
     "call_driver": "Kuryerga qo'ng'iroq qilish",
     "financial_summary": "Moliyaviy hisobot",
-    "rejection_reason": "Rad etish sababi"
+    "rejection_reason": "Rad etish sababi",
+    "cancel_order": "Buyurtmani bekor qilish",
+    "receipt": "Chek",
+    "receipt_copied": "Nusxalandi"
   },
   "supplier": {
     "dashboard_title": "Ta'minotchi Boshqaruvi",

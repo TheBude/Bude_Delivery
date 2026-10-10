@@ -39,6 +39,7 @@ interface AuthContextType {
   loginWithGoogle: (data: any) => Promise<{ isNewUser?: boolean; googleUser?: any }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
+  updateUserProfile: (data: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -229,6 +230,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUserProfile = async (updates: any) => {
+    try {
+      const res = await api.auth.updateProfile(updates);
+      if (res?.user) {
+        setUser(res.user);
+      } else {
+        await refreshProfile();
+      }
+      hapticNotification('success');
+    } catch (err: any) {
+      hapticNotification('error');
+      throw err;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -245,6 +261,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithGoogle,
         logout,
         refreshProfile,
+        updateUserProfile,
       }}
     >
       {children}

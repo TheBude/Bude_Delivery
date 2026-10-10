@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api/client';
 import { useCart } from '../../context/CartContext';
-import { ArrowLeft, ShoppingBag, Plus, Minus, Truck, Sparkles, ImageOff } from 'lucide-react';
-import { hapticImpact } from '../../utils/telegram';
+import { ArrowLeft, ShoppingBag, Plus, Minus, Truck, Sparkles, ImageOff, Search } from 'lucide-react';
+import { hapticImpact, hapticSelection, bindTelegramBackButton } from '../../utils/telegram';
 
 interface SupplierCatalogModalProps {
   supplier: any;
@@ -21,6 +21,13 @@ export const SupplierCatalogModal: React.FC<SupplierCatalogModalProps> = ({
   const { items, addItem, updateQuantity, itemCount, total } = useCart();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [catalogFilter, setCatalogFilter] = useState<'ALL' | 'DISCOUNT'>('ALL');
+
+  // Bind Telegram native BackButton
+  useEffect(() => {
+    return bindTelegramBackButton(onClose);
+  }, [onClose]);
 
   useEffect(() => {
     const fetchCatalog = async () => {
@@ -43,6 +50,17 @@ export const SupplierCatalogModal: React.FC<SupplierCatalogModalProps> = ({
     const item = items.find((i) => i.product.id === productId);
     return item ? item.quantity : 0;
   };
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = !q || p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q));
+      const matchesDiscount = catalogFilter === 'DISCOUNT' ? Boolean(p.discount_price) : true;
+      return matchesSearch && matchesDiscount;
+    });
+  }, [products, searchQuery, catalogFilter]);
+
+  const discountCount = useMemo(() => products.filter((p) => Boolean(p.discount_price)).length, [products]);
 
   return (
     <motion.div
@@ -96,23 +114,70 @@ export const SupplierCatalogModal: React.FC<SupplierCatalogModalProps> = ({
       </div>
 
       {/* Catalog Body */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-28">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-28">
         <div className="bg-emerald-50/80 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800/60 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
           <Sparkles className="w-4 h-4 shrink-0 text-emerald-600" />
           <span>{t('receiver.only_available_note')}</span>
         </div>
 
+        {/* Search & Filter */}
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Mahsulot nomi bo'yicha qidirish..."
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                hapticSelection();
+                setCatalogFilter('ALL');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                catalogFilter === 'ALL'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                  : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+              }`}
+            >
+              Barchasi ({products.length})
+            </button>
+            {discountCount > 0 && (
+              <button
+                onClick={() => {
+                  hapticSelection();
+                  setCatalogFilter('DISCOUNT');
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 ${
+                  catalogFilter === 'DISCOUNT'
+                    ? 'bg-rose-500 text-white'
+                    : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <span>Aksiyalar</span>
+                <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[9px]">
+                  {discountCount}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
         {loading ? (
           <div className="py-20 text-center text-xs text-slate-400 animate-pulse">
             {t('common.loading')}
           </div>
-        ) : products.length === 0 ? (
-          <div className="py-20 text-center text-xs text-slate-400">
-            Hozirda sotuvda mahsulotlar mavjud emas
+        ) : filteredProducts.length === 0 ? (
+          <div className="py-16 text-center text-xs text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+            {searchQuery ? "Qidiruv bo'yicha mahsulot topilmadi" : "Hozirda sotuvda mahsulotlar mavjud emas"}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3">
-            {products.map((product) => {
+            {filteredProducts.map((product) => {
               const qty = getItemQuantity(product.id);
               const price = product.discount_price !== null && product.discount_price !== undefined
                 ? product.discount_price

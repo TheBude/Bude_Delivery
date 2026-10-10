@@ -86,7 +86,10 @@
     "driver_name": "Driver Name",
     "call_driver": "Call Courier",
     "financial_summary": "Financial Breakdown",
-    "rejection_reason": "Reason for Rejection"
+    "rejection_reason": "Reason for Rejection",
+    "cancel_order": "Cancel order",
+    "receipt": "Receipt",
+    "receipt_copied": "Copied"
   },
   "supplier": {
     "dashboard_title": "Supplier Dashboard",

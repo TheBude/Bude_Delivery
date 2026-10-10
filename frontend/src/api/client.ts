@@ -96,7 +96,7 @@ export const api = {
     },
     updateProfile: (profile: any) => {
       if (isDemoSession()) {
-        return Promise.resolve({ success: true });
+        return Promise.resolve(demoStore.updateProfile(profile));
       }
       return request<any>('/auth/profile', {
         method: 'PUT',
@@ -227,6 +227,15 @@ export const api = {
       return request<any>(`/orders/${id}/reject`, {
         method: 'POST',
         body: JSON.stringify({ rejection_reason }),
+      });
+    },
+    cancel: (id: string, reason?: string) => {
+      if (isDemoSession()) {
+        return Promise.resolve(demoStore.cancelOrder(id, reason));
+      }
+      return request<any>(`/orders/${id}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ cancellation_reason: reason }),
       });
     },
   },

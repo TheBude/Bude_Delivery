@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Plus, Edit2, Trash2, 
-  Package, X 
+  Package, X, Search 
 } from 'lucide-react';
 import { hapticImpact, hapticNotification, hapticSelection } from '../../utils/telegram';
 
@@ -23,6 +23,9 @@ export const SupplierProductsTab: React.FC = () => {
   const { supplier } = useAuth();
 
   const [products, setProducts] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filterAvailability, setFilterAvailability] = useState<'ALL' | 'AVAILABLE' | 'UNAVAILABLE' | 'DISCOUNT'>('ALL');
+
   const [loading, setLoading] = useState<boolean>(true);
 
   // Add / Edit Modal
@@ -159,6 +162,24 @@ export const SupplierProductsTab: React.FC = () => {
     }
   };
 
+  const availableCount = useMemo(() => products.filter((p) => p.is_available).length, [products]);
+  const outOfStockCount = useMemo(() => products.filter((p) => !p.is_available).length, [products]);
+  const discountCount = useMemo(() => products.filter((p) => Boolean(p.discount_price)).length, [products]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = !q || p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q));
+
+      let matchesFilter = true;
+      if (filterAvailability === 'AVAILABLE') matchesFilter = p.is_available;
+      else if (filterAvailability === 'UNAVAILABLE') matchesFilter = !p.is_available;
+      else if (filterAvailability === 'DISCOUNT') matchesFilter = Boolean(p.discount_price);
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [products, searchQuery, filterAvailability]);
+
   return (
     <div className="space-y-4">
       {/* Title & Add Button */}
@@ -182,15 +203,110 @@ export const SupplierProductsTab: React.FC = () => {
         </button>
       </div>
 
+      {/* Inventory Stats Cards */}
+      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+        <div className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs">
+          <span className="text-[10px] text-slate-400 font-semibold block">Sotuvda mavjud</span>
+          <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{availableCount} ta</span>
+        </div>
+        <div className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs">
+          <span className="text-[10px] text-slate-400 font-semibold block">Tugagan</span>
+          <span className="text-sm font-extrabold text-amber-600 dark:text-amber-400">{outOfStockCount} ta</span>
+        </div>
+        <div className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs">
+          <span className="text-[10px] text-slate-400 font-semibold block">Aksiyada</span>
+          <span className="text-sm font-extrabold text-rose-600 dark:text-rose-400">{discountCount} ta</span>
+        </div>
+      </div>
+
+      {/* Search & Filter Chips */}
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tovar nomi yoki tavsifi bo'yicha qidirish..."
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold">
+          <button
+            onClick={() => {
+              hapticSelection();
+              setFilterAvailability('ALL');
+            }}
+            className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap ${
+              filterAvailability === 'ALL'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            Barchasi ({products.length})
+          </button>
+
+          <button
+            onClick={() => {
+              hapticSelection();
+              setFilterAvailability('AVAILABLE');
+            }}
+            className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 ${
+              filterAvailability === 'AVAILABLE'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            <span>Mavjud</span>
+            <span>({availableCount})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              hapticSelection();
+              setFilterAvailability('UNAVAILABLE');
+            }}
+            className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 ${
+              filterAvailability === 'UNAVAILABLE'
+                ? 'bg-amber-600 text-white'
+                : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            <span>Mavjud emas</span>
+            <span>({outOfStockCount})</span>
+          </button>
+
+          {discountCount > 0 && (
+            <button
+              onClick={() => {
+                hapticSelection();
+                setFilterAvailability('DISCOUNT');
+              }}
+              className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 ${
+                filterAvailability === 'DISCOUNT'
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+              }`}
+            >
+              <span>Aksiya</span>
+              <span>({discountCount})</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Products List */}
       {loading ? (
         <div className="py-20 text-center text-xs text-slate-400 animate-pulse">
           {t('common.loading')}
         </div>
-      ) : products.length === 0 ? (
+      ) : filteredProducts.length === 0 ? (
         <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-3">
           <Package className="w-12 h-12 text-slate-300 mx-auto" />
-          <p className="text-xs text-slate-500">Hozircha tovarlar mavjud emas</p>
+          <p className="text-xs text-slate-500">
+            {searchQuery ? "Qidiruv bo'yicha tovarlar topilmadi" : "Hozircha tovarlar mavjud emas"}
+          </p>
           <button
             onClick={openAddModal}
             className="py-2 px-4 rounded-xl bg-brand-600 text-white text-xs font-bold mx-auto"
@@ -200,7 +316,7 @@ export const SupplierProductsTab: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <motion.div
               key={product.id}
               layout

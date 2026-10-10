@@ -86,7 +86,10 @@
     "driver_name": "Водитель",
     "call_driver": "Позвонить водителю",
     "financial_summary": "Финансовый отчет",
-    "rejection_reason": "Причина отказа"
+    "rejection_reason": "Причина отказа",
+    "cancel_order": "Отменить заказ",
+    "receipt": "Чек",
+    "receipt_copied": "Скопировано"
   },
   "supplier": {
     "dashboard_title": "Панель Поставщика",

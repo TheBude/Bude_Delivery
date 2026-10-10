@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api/client';
@@ -6,9 +6,9 @@ import { getSocket } from '../../api/socket';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Check, X, Truck, Phone, Clock, MapPin, 
-  UserCheck, Volume2 
+  UserCheck, Volume2, Copy, Search, DollarSign, TrendingUp, PackageCheck 
 } from 'lucide-react';
-import { hapticImpact, hapticNotification, playNotificationSound } from '../../utils/telegram';
+import { hapticImpact, hapticNotification, playNotificationSound, copyToClipboard, formatOrderReceiptText } from '../../utils/telegram';
 
 export const SupplierOrdersTab: React.FC = () => {
   const { t } = useTranslation();
@@ -163,17 +163,54 @@ export const SupplierOrdersTab: React.FC = () => {
     }
   };
 
-  // Filter orders
-  const pendingOrders = orders.filter((o) => o.status === 'PENDING');
-  const activeOrders = orders.filter((o) => o.status === 'PREPARING' || o.status === 'IN_TRANSIT');
-  const historyOrders = orders.filter((o) => o.status === 'DELIVERED' || o.status === 'REJECTED');
+  // Search and Copy States
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
-  const displayedOrders =
-    filter === 'PENDING'
-      ? pendingOrders
-      : filter === 'ACTIVE'
-      ? activeOrders
-      : historyOrders;
+  const handleCopyReceipt = async (order: any) => {
+    hapticImpact('medium');
+    const text = formatOrderReceiptText(order);
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      hapticNotification('success');
+      setCopiedOrderId(order.id);
+      setTimeout(() => setCopiedOrderId(null), 2500);
+    }
+  };
+
+  // KPI Analytics
+  const totalRevenue = useMemo(() => {
+    return orders
+      .filter((o) => o.status === 'DELIVERED')
+      .reduce((sum, o) => sum + Number(o.total_price || 0), 0);
+  }, [orders]);
+
+  const deliveredCount = useMemo(() => orders.filter((o) => o.status === 'DELIVERED').length, [orders]);
+  const pendingOrders = useMemo(() => orders.filter((o) => o.status === 'PENDING'), [orders]);
+  const activeOrders = useMemo(() => orders.filter((o) => o.status === 'PREPARING' || o.status === 'IN_TRANSIT'), [orders]);
+  const historyOrders = useMemo(() => orders.filter((o) => o.status === 'DELIVERED' || o.status === 'REJECTED'), [orders]);
+
+  const displayedOrders = useMemo(() => {
+    let list =
+      filter === 'PENDING'
+        ? pendingOrders
+        : filter === 'ACTIVE'
+        ? activeOrders
+        : historyOrders;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((ord) => {
+        const idMatch = ord.id.toLowerCase().includes(q);
+        const nameMatch = `${ord.receiver?.first_name || ''} ${ord.receiver?.last_name || ''}`.toLowerCase().includes(q);
+        const phoneMatch = (ord.receiver?.phone_primary || '').includes(q);
+        const addressMatch = (ord.delivery_address || '').toLowerCase().includes(q);
+        return idMatch || nameMatch || phoneMatch || addressMatch;
+      });
+    }
+
+    return list;
+  }, [filter, pendingOrders, activeOrders, historyOrders, searchQuery]);
 
   return (
     <div className="space-y-4">
@@ -197,59 +234,103 @@ export const SupplierOrdersTab: React.FC = () => {
         </motion.div>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-        <button
-          onClick={() => {
-            hapticImpact('light');
-            setFilter('PENDING');
-          }}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg relative transition flex items-center justify-center gap-1.5 ${
-            filter === 'PENDING'
-              ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
-              : 'text-slate-500'
-          }`}
-        >
-          <span>{t('supplier.filter_pending')}</span>
-          {pendingOrders.length > 0 && (
-            <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center animate-pulse">
-              {pendingOrders.length}
-            </span>
-          )}
-        </button>
+      {/* KPI Dashboard Analytics Cards */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="p-3 bg-gradient-to-br from-brand-600 to-teal-600 text-white rounded-2xl shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-white/80">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Jami Tushum</span>
+            <DollarSign className="w-3.5 h-3.5" />
+          </div>
+          <div className="text-base font-extrabold tracking-tight">
+            {totalRevenue.toLocaleString()} <span className="text-[10px] font-normal">so'm</span>
+          </div>
+          <p className="text-[10px] text-white/70 flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" />
+            <span>Muvaffaqiyatli savdo</span>
+          </p>
+        </div>
 
-        <button
-          onClick={() => {
-            hapticImpact('light');
-            setFilter('ACTIVE');
-          }}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg relative transition flex items-center justify-center gap-1.5 ${
-            filter === 'ACTIVE'
-              ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
-              : 'text-slate-500'
-          }`}
-        >
-          <span>{t('supplier.filter_active')}</span>
-          {activeOrders.length > 0 && (
-            <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-extrabold flex items-center justify-center">
-              {activeOrders.length}
-            </span>
-          )}
-        </button>
+        <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Yetkazilgan</span>
+            <PackageCheck className="w-3.5 h-3.5 text-emerald-500" />
+          </div>
+          <div className="text-base font-extrabold text-slate-900 dark:text-white">
+            {deliveredCount} <span className="text-[10px] font-normal text-slate-400">ta buyurtma</span>
+          </div>
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+            {orders.length > 0 ? `${Math.round((deliveredCount / orders.length) * 100)}% yakunlangan` : "0%"}
+          </p>
+        </div>
+      </div>
 
-        <button
-          onClick={() => {
-            hapticImpact('light');
-            setFilter('HISTORY');
-          }}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg relative transition flex items-center justify-center ${
-            filter === 'HISTORY'
-              ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
-              : 'text-slate-500'
-          }`}
-        >
-          <span>{t('supplier.filter_history')}</span>
-        </button>
+      {/* Filter Tabs & Search */}
+      <div className="space-y-2">
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <button
+            onClick={() => {
+              hapticImpact('light');
+              setFilter('PENDING');
+            }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg relative transition flex items-center justify-center gap-1.5 ${
+              filter === 'PENDING'
+                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+                : 'text-slate-500'
+            }`}
+          >
+            <span>{t('supplier.filter_pending')}</span>
+            {pendingOrders.length > 0 && (
+              <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center animate-pulse">
+                {pendingOrders.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              hapticImpact('light');
+              setFilter('ACTIVE');
+            }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg relative transition flex items-center justify-center gap-1.5 ${
+              filter === 'ACTIVE'
+                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+                : 'text-slate-500'
+            }`}
+          >
+            <span>{t('supplier.filter_active')}</span>
+            {activeOrders.length > 0 && (
+              <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-extrabold flex items-center justify-center">
+                {activeOrders.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              hapticImpact('light');
+              setFilter('HISTORY');
+            }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg relative transition flex items-center justify-center ${
+              filter === 'HISTORY'
+                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+                : 'text-slate-500'
+            }`}
+          >
+            <span>{t('supplier.filter_history')}</span>
+          </button>
+        </div>
+
+        {/* Search input for orders */}
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buyurtma ID, mijoz ismi yoki telefon raqami..."
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition"
+          />
+        </div>
       </div>
 
       {/* Orders List */}
@@ -260,7 +341,9 @@ export const SupplierOrdersTab: React.FC = () => {
       ) : displayedOrders.length === 0 ? (
         <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2">
           <Truck className="w-10 h-10 text-slate-300 mx-auto" />
-          <p className="text-xs text-slate-500 font-medium">{t('supplier.no_orders')}</p>
+          <p className="text-xs text-slate-500 font-medium">
+            {searchQuery ? "Qidiruv bo'yicha buyurtmalar topilmadi" : t('supplier.no_orders')}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -291,9 +374,30 @@ export const SupplierOrdersTab: React.FC = () => {
                   </p>
                 </div>
 
-                <span className="font-extrabold text-sm text-brand-600 dark:text-brand-400">
-                  {Number(order.total_price).toLocaleString()} so'm
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleCopyReceipt(order)}
+                    className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 text-[10px] font-bold flex items-center gap-1 transition active:scale-95"
+                    title="Chek / Yo'llanmani nusxalash"
+                  >
+                    {copiedOrderId === order.id ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-600">Nusxalandi</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Chek</span>
+                      </>
+                    )}
+                  </button>
+
+                  <span className="font-extrabold text-sm text-brand-600 dark:text-brand-400">
+                    {Number(order.total_price).toLocaleString()} so'm
+                  </span>
+                </div>
               </div>
 
               {/* Delivery info */}

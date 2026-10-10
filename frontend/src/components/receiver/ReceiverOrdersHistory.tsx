@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api/client';
@@ -6,14 +6,15 @@ import { getSocket } from '../../api/socket';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Package, Truck, Phone, Clock, MapPin, CheckCircle2, 
-  XCircle, ChevronDown, ChevronUp, Calendar, RefreshCw 
+  XCircle, ChevronDown, ChevronUp, Calendar, RefreshCw, 
+  Copy, Check, Search, AlertCircle, Ban 
 } from 'lucide-react';
-import { hapticImpact } from '../../utils/telegram';
+import { hapticImpact, hapticNotification, copyToClipboard, formatOrderReceiptText } from '../../utils/telegram';
 
 const STATUS_STEPS = [
   { key: 'PENDING', label: 'Kutilmoqda' },
-  { key: 'PREPARING', label: 'Yuk yig\'ilmoqda' },
-  { key: 'IN_TRANSIT', label: 'Yo\'lga chiqdi' },
+  { key: 'PREPARING', label: "Yuk yig'ilmoqda" },
+  { key: 'IN_TRANSIT', label: "Yo'lga chiqdi" },
   { key: 'DELIVERED', label: 'Yetkazildi' },
 ];
 
@@ -23,6 +24,19 @@ export const ReceiverOrdersHistory: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+  // Filters and Search
+  const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'DELIVERED' | 'REJECTED'>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Toast / Copy state
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+
+  // Cancel order modal
+  const [cancellingOrder, setCancellingOrder] = useState<any | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('');
+  const [isCancelling, setIsCancelling] = useState<boolean>(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -68,6 +82,42 @@ export const ReceiverOrdersHistory: React.FC = () => {
     setExpandedOrderId((prev) => (prev === id ? null : id));
   };
 
+  const handleCopyReceipt = async (order: any) => {
+    hapticImpact('medium');
+    const text = formatOrderReceiptText(order);
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      hapticNotification('success');
+      setCopiedOrderId(order.id);
+      setTimeout(() => setCopiedOrderId(null), 2500);
+    }
+  };
+
+  const handleConfirmCancel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cancellingOrder) return;
+    hapticImpact('heavy');
+    setIsCancelling(true);
+    setCancelError(null);
+
+    try {
+      const res = await api.orders.cancel(
+        cancellingOrder.id,
+        cancelReason.trim() || "Xaridor tomonidan bekor qilindi"
+      );
+      setOrders((prev) =>
+        prev.map((o) => (o.id === cancellingOrder.id ? res.order : o))
+      );
+      hapticNotification('success');
+      setCancellingOrder(null);
+    } catch (err: any) {
+      setCancelError(err.message || "Buyurtmani bekor qilishda xatolik");
+      hapticNotification('error');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
@@ -90,8 +140,37 @@ export const ReceiverOrdersHistory: React.FC = () => {
     return STATUS_STEPS.findIndex((s) => s.key === status);
   };
 
+  // Filtered orders
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      // Filter by status tab
+      if (filter === 'ACTIVE') {
+        if (!['PENDING', 'PREPARING', 'IN_TRANSIT'].includes(order.status)) return false;
+      } else if (filter === 'DELIVERED') {
+        if (order.status !== 'DELIVERED') return false;
+      } else if (filter === 'REJECTED') {
+        if (order.status !== 'REJECTED') return false;
+      }
+
+      // Filter by search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const idMatch = order.id.toLowerCase().includes(q);
+        const supplierMatch = order.supplier?.company_name?.toLowerCase().includes(q);
+        const addressMatch = order.delivery_address?.toLowerCase().includes(q);
+        return idMatch || supplierMatch || addressMatch;
+      }
+
+      return true;
+    });
+  }, [orders, filter, searchQuery]);
+
+  const activeCount = useMemo(() => orders.filter((o) => ['PENDING', 'PREPARING', 'IN_TRANSIT'].includes(o.status)).length, [orders]);
+  const deliveredCount = useMemo(() => orders.filter((o) => o.status === 'DELIVERED').length, [orders]);
+
   return (
     <div className="space-y-4">
+      {/* Title & Refresh */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -102,26 +181,108 @@ export const ReceiverOrdersHistory: React.FC = () => {
         </div>
         <button
           onClick={fetchOrders}
-          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 active:scale-95 transition"
+          title="Yangilash"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
+      </div>
+
+      {/* Filter Tabs & Search */}
+      <div className="space-y-2">
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <button
+            onClick={() => {
+              hapticImpact('light');
+              setFilter('ALL');
+            }}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+              filter === 'ALL'
+                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+                : 'text-slate-500'
+            }`}
+          >
+            Barchasi ({orders.length})
+          </button>
+
+          <button
+            onClick={() => {
+              hapticImpact('light');
+              setFilter('ACTIVE');
+            }}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1 ${
+              filter === 'ACTIVE'
+                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+                : 'text-slate-500'
+            }`}
+          >
+            <span>Faol</span>
+            {activeCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-brand-600 text-white text-[9px] flex items-center justify-center font-extrabold">
+                {activeCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              hapticImpact('light');
+              setFilter('DELIVERED');
+            }}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+              filter === 'DELIVERED'
+                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+                : 'text-slate-500'
+            }`}
+          >
+            Yetkazildi ({deliveredCount})
+          </button>
+
+          <button
+            onClick={() => {
+              hapticImpact('light');
+              setFilter('REJECTED');
+            }}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+              filter === 'REJECTED'
+                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+                : 'text-slate-500'
+            }`}
+          >
+            Bekor
+          </button>
+        </div>
+
+        {/* Search input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buyurtma ID yoki do'kon nomi bo'yicha qidirish..."
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition"
+          />
+        </div>
       </div>
 
       {loading ? (
         <div className="py-20 text-center text-xs text-slate-400 animate-pulse">
           {t('common.loading')}
         </div>
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2">
           <Package className="w-12 h-12 text-slate-300 mx-auto" />
-          <p className="text-xs text-slate-500 font-medium">{t('receiver.no_orders_yet')}</p>
+          <p className="text-xs text-slate-500 font-medium">
+            {searchQuery ? "Qidiruv bo'yicha buyurtmalar topilmadi" : t('receiver.no_orders_yet')}
+          </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {orders.map((order) => {
+        <div className="space-y-3">
+          {filteredOrders.map((order) => {
             const isExpanded = expandedOrderId === order.id;
             const currentStep = getStepIndex(order.status);
+            const isCopied = copiedOrderId === order.id;
 
             return (
               <motion.div
@@ -149,7 +310,7 @@ export const ReceiverOrdersHistory: React.FC = () => {
                     </div>
 
                     <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      {order.supplier?.company_name || 'Ta\'minotchi'}
+                      {order.supplier?.company_name || "Ta'minotchi"}
                     </p>
 
                     <div className="flex items-center gap-2 text-[10px] text-slate-400">
@@ -169,8 +330,33 @@ export const ReceiverOrdersHistory: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="text-slate-400">
-                    {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                  <div className="flex items-center gap-2">
+                    {/* Copy Receipt Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyReceipt(order);
+                      }}
+                      className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 text-[10px] font-bold flex items-center gap-1 transition active:scale-95"
+                      title="Chekni nusxalash"
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-600">Nusxalandi</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Chek</span>
+                        </>
+                      )}
+                    </button>
+
+                    <div className="text-slate-400">
+                      {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </div>
                   </div>
                 </div>
 
@@ -230,7 +416,7 @@ export const ReceiverOrdersHistory: React.FC = () => {
                         <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs space-y-1">
                           <div className="flex items-center gap-1.5 font-bold">
                             <XCircle className="w-4 h-4 text-rose-600" />
-                            <span>Buyurtma rad etilgan</span>
+                            <span>Buyurtma bekor qilingan</span>
                           </div>
                           {order.rejection_reason && (
                             <p className="text-[11px] bg-white/70 dark:bg-slate-900/60 p-2 rounded-lg">
@@ -313,6 +499,23 @@ export const ReceiverOrdersHistory: React.FC = () => {
                           </div>
                         </div>
                       </div>
+
+                      {/* Cancel Order Action (Only for PENDING status) */}
+                      {order.status === 'PENDING' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            hapticImpact('medium');
+                            setCancellingOrder(order);
+                            setCancelReason('');
+                            setCancelError(null);
+                          }}
+                          className="w-full py-2.5 px-3 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-rose-100 transition active:scale-[0.98]"
+                        >
+                          <Ban className="w-4 h-4" />
+                          <span>Buyurtmani bekor qilish</span>
+                        </button>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -321,6 +524,74 @@ export const ReceiverOrdersHistory: React.FC = () => {
           })}
         </div>
       )}
+
+      {/* Cancel Order Confirmation Modal */}
+      <AnimatePresence>
+        {cancellingOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 space-y-4"
+            >
+              <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    Buyurtmani bekor qilish
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    #{cancellingOrder.id.slice(-6).toUpperCase()} raqamli buyurtma
+                  </p>
+                </div>
+              </div>
+
+              {cancelError && (
+                <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 text-xs">
+                  {cancelError}
+                </div>
+              )}
+
+              <form onSubmit={handleConfirmCancel} className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Bekor qilish sababi (ixtiyoriy)
+                  </label>
+                  <input
+                    type="text"
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Masalan: Fikrimdan qaytdim yoki boshqa manzil..."
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-rose-500 outline-hidden font-medium"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCancellingOrder(null)}
+                    disabled={isCancelling}
+                    className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 transition"
+                  >
+                    Ortga
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isCancelling}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-500/25 active:scale-95 transition"
+                  >
+                    {isCancelling ? "Bekor qilinmoqda..." : "Ha, bekor qilinsin"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
