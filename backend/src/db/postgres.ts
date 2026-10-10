@@ -7,14 +7,154 @@ export const pgPool = new Pool({
 });
 
 export async function initPostgresTables() {
+  if (!config.databaseUrl) return false;
   try {
     const client = await pgPool.connect();
-    console.log('🐘 [PostgreSQL] Successfully connected to database: bude_delivery');
+    console.log('🐘 [PostgreSQL] Successfully connected to database');
+
+    // Create required tables if they do not exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        telegram_id BIGINT UNIQUE,
+        email VARCHAR(255) UNIQUE,
+        password_hash TEXT,
+        google_id VARCHAR(255) UNIQUE,
+        avatar_url TEXT,
+        role VARCHAR(50) NOT NULL,
+        first_name VARCHAR(255) NOT NULL,
+        last_name VARCHAR(255) NOT NULL,
+        phone_primary VARCHAR(50) NOT NULL,
+        phone_secondary VARCHAR(50),
+        language VARCHAR(10) DEFAULT 'uz',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS suppliers (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        company_name VARCHAR(255) NOT NULL,
+        delivery_fee NUMERIC(12, 2) DEFAULT 0.0,
+        is_free_delivery BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS products (
+        id VARCHAR(255) PRIMARY KEY,
+        supplier_id VARCHAR(255) NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        price NUMERIC(12, 2) NOT NULL,
+        discount_price NUMERIC(12, 2),
+        is_available BOOLEAN DEFAULT TRUE,
+        quantity_optional INT,
+        image_url TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS orders (
+        id VARCHAR(255) PRIMARY KEY,
+        receiver_id VARCHAR(255) NOT NULL REFERENCES users(id),
+        supplier_id VARCHAR(255) NOT NULL REFERENCES suppliers(id),
+        status VARCHAR(50) DEFAULT 'PENDING',
+        delivery_lat DOUBLE PRECISION NOT NULL,
+        delivery_lng DOUBLE PRECISION NOT NULL,
+        delivery_address TEXT NOT NULL,
+        delivery_time_slot VARCHAR(100) NOT NULL,
+        notes TEXT,
+        total_price NUMERIC(12, 2) NOT NULL,
+        rejection_reason TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS order_items (
+        id VARCHAR(255) PRIMARY KEY,
+        order_id VARCHAR(255) NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        product_id VARCHAR(255) NOT NULL REFERENCES products(id),
+        quantity INT DEFAULT 1,
+        price_at_order NUMERIC(12, 2) NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS deliveries (
+        id VARCHAR(255) PRIMARY KEY,
+        order_id VARCHAR(255) UNIQUE NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        vehicle_model VARCHAR(255) NOT NULL,
+        vehicle_plate_number VARCHAR(100) NOT NULL,
+        driver_name VARCHAR(255) NOT NULL,
+        driver_phone VARCHAR(50) NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    console.log('🐘 [PostgreSQL] Database tables verified & initialized successfully!');
     client.release();
     return true;
   } catch (err) {
     console.warn('⚠️ [PostgreSQL] Connection warning (using persistent engine):', (err as any).message);
     return false;
+  }
+}
+
+export async function loadAllFromPostgres() {
+  if (!config.databaseUrl) return null;
+  try {
+    const [u, s, p, o, oi, d] = await Promise.all([
+      pgPool.query('SELECT * FROM users'),
+      pgPool.query('SELECT * FROM suppliers'),
+      pgPool.query('SELECT * FROM products'),
+      pgPool.query('SELECT * FROM orders'),
+      pgPool.query('SELECT * FROM order_items'),
+      pgPool.query('SELECT * FROM deliveries'),
+    ]);
+    return {
+      users: u.rows.map((row: any) => ({
+        ...row,
+        telegram_id: row.telegram_id ? Number(row.telegram_id) : null,
+        created_at: new Date(row.created_at).toISOString(),
+        updated_at: new Date(row.updated_at).toISOString(),
+      })),
+      suppliers: s.rows.map((row: any) => ({
+        ...row,
+        delivery_fee: Number(row.delivery_fee),
+        is_free_delivery: Boolean(row.is_free_delivery),
+        created_at: new Date(row.created_at).toISOString(),
+        updated_at: new Date(row.updated_at).toISOString(),
+      })),
+      products: p.rows.map((row: any) => ({
+        ...row,
+        price: Number(row.price),
+        discount_price: row.discount_price !== null ? Number(row.discount_price) : null,
+        is_available: Boolean(row.is_available),
+        created_at: new Date(row.created_at).toISOString(),
+        updated_at: new Date(row.updated_at).toISOString(),
+      })),
+      orders: o.rows.map((row: any) => ({
+        ...row,
+        total_price: Number(row.total_price),
+        delivery_lat: Number(row.delivery_lat),
+        delivery_lng: Number(row.delivery_lng),
+        created_at: new Date(row.created_at).toISOString(),
+        updated_at: new Date(row.updated_at).toISOString(),
+      })),
+      orderItems: oi.rows.map((row: any) => ({
+        ...row,
+        quantity: Number(row.quantity),
+        price_at_order: Number(row.price_at_order),
+      })),
+      deliveries: d.rows.map((row: any) => ({
+        ...row,
+        created_at: new Date(row.created_at).toISOString(),
+        updated_at: new Date(row.updated_at).toISOString(),
+      })),
+    };
+  } catch (err: any) {
+    console.error('[PostgreSQL] loadAllFromPostgres error:', err.message);
+    return null;
   }
 }
 

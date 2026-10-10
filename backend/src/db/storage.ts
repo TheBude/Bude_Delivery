@@ -5,6 +5,7 @@ import { User, Supplier, Product, Order, OrderItem, Delivery, Role, OrderStatus 
 import { ORDER_STATUSES } from '../constants/app.constants';
 import { 
   initPostgresTables, 
+  loadAllFromPostgres,
   syncUserToPostgres, 
   syncSupplierToPostgres, 
   syncProductToPostgres, 
@@ -58,11 +59,159 @@ export class DatabaseStore {
     this.persist();
 
     // Async sync to PostgreSQL if connected
-    initPostgresTables().then((connected) => {
+    initPostgresTables().then(async (connected) => {
       if (connected) {
-        this.syncAllToPostgres();
+        const pgData = await loadAllFromPostgres();
+        if (pgData && (pgData.users.length > 0 || pgData.suppliers.length > 0 || pgData.products.length > 0)) {
+          console.log(`🐘 [PostgreSQL] Loaded data from database: ${pgData.users.length} users, ${pgData.suppliers.length} suppliers, ${pgData.products.length} products.`);
+          this.data = pgData as DatabaseData;
+          this.persist();
+        } else {
+          this.seedDefaultDataIfEmpty();
+          await this.syncAllToPostgres();
+        }
+      } else {
+        this.seedDefaultDataIfEmpty();
       }
     });
+  }
+
+  private seedDefaultDataIfEmpty() {
+    if (this.data.suppliers.length > 0) return;
+
+    console.log('🌱 [Database] Seeding default suppliers & products for catalogue...');
+    const now = new Date().toISOString();
+
+    const supplierUser1: User = {
+      id: 'usr_demo_supplier',
+      first_name: 'Akmal',
+      last_name: 'Rahmatov',
+      phone_primary: '+998 90 123 45 67',
+      role: 'SUPPLIER',
+      language: 'uz',
+      created_at: now,
+      updated_at: now,
+    };
+
+    const supplier1: Supplier = {
+      id: 'sup_buxoro_fresh',
+      user_id: supplierUser1.id,
+      company_name: 'Buxoro Fresh Market & Logistics',
+      delivery_fee: 15000,
+      is_free_delivery: false,
+      created_at: now,
+      updated_at: now,
+    };
+
+    const supplierUser2: User = {
+      id: 'usr_demo_supplier_2',
+      first_name: 'Dilshod',
+      last_name: 'Karimov',
+      phone_primary: '+998 93 987 65 43',
+      role: 'SUPPLIER',
+      language: 'uz',
+      created_at: now,
+      updated_at: now,
+    };
+
+    const supplier2: Supplier = {
+      id: 'sup_agro_mega',
+      user_id: supplierUser2.id,
+      company_name: "Toshkent Mega Agro Ta'minot",
+      delivery_fee: 0,
+      is_free_delivery: true,
+      created_at: now,
+      updated_at: now,
+    };
+
+    const products: Product[] = [
+      {
+        id: 'prod_1',
+        supplier_id: supplier1.id,
+        name: 'Olma Golden (Vodil saralangan)',
+        description: "Eng shirin va suvli Oltiariq olmalari, yangi uzilgan tabiiy mahsulot",
+        price: 18000,
+        discount_price: 15000,
+        is_available: true,
+        quantity_optional: 50,
+        image_url: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&auto=format&fit=crop&q=60',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'prod_2',
+        supplier_id: supplier1.id,
+        name: 'Pomidor Qizil (Issiqxona)',
+        description: "Tabiiy go'shtdor qizil pomidor, a'lo sifat, to'g'ridan-to'g'ri issiqxonadan",
+        price: 22000,
+        discount_price: null,
+        is_available: true,
+        quantity_optional: 30,
+        image_url: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&auto=format&fit=crop&q=60',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'prod_3',
+        supplier_id: supplier1.id,
+        name: 'Bodring Bodomiy',
+        description: "Yangi uzilgan qarsildoq bodomiy bodring, qadoqlangan",
+        price: 14000,
+        discount_price: 12000,
+        is_available: true,
+        quantity_optional: 40,
+        image_url: 'https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?w=400&auto=format&fit=crop&q=60',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'prod_4',
+        supplier_id: supplier1.id,
+        name: "Tog' Asali (1 kg, Tabiiy)",
+        description: "Chotqol tog'larining 100% tabiiy toza gul asali, shifobaxsh",
+        price: 85000,
+        discount_price: 79000,
+        is_available: true,
+        quantity_optional: 20,
+        image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&auto=format&fit=crop&q=60',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'prod_5',
+        supplier_id: supplier2.id,
+        name: 'Karam Oqbosh (1 kg)',
+        description: "Yangi hosil, qattiq va shira to'la oqbosh karam",
+        price: 5000,
+        discount_price: null,
+        is_available: true,
+        quantity_optional: 100,
+        image_url: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=400&auto=format&fit=crop&q=60',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'prod_6',
+        supplier_id: supplier2.id,
+        name: 'Sabzi Qizil (Saralangan)',
+        description: "Tozalangan, shirin shirador qizil sabzi",
+        price: 6000,
+        discount_price: null,
+        is_available: true,
+        quantity_optional: 80,
+        image_url: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400&auto=format&fit=crop&q=60',
+        created_at: now,
+        updated_at: now,
+      },
+    ];
+
+    if (!this.data.users.find(u => u.id === supplierUser1.id)) this.data.users.push(supplierUser1);
+    if (!this.data.users.find(u => u.id === supplierUser2.id)) this.data.users.push(supplierUser2);
+    this.data.suppliers.push(supplier1, supplier2);
+    this.data.products.push(...products);
+
+    this.persist();
+    console.log('✅ [Database] Seeded 2 suppliers and 6 products successfully.');
   }
 
   public async clearAllData() {
