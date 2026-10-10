@@ -235,7 +235,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   <div>
                     <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                       <span>{u.first_name} {u.last_name}</span>
-                      {u.email === 'sbunyod15@gmail.com' && (
+                      {(u.email === 'sbunyod15@gmail.com' || String(u.telegram_id) === '8012592174') && (
                         <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded-md">
                           Asosiy Admin
                         </span>

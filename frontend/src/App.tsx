@@ -30,7 +30,11 @@ export const MainContent: React.FC = () => {
     return <AuthScreen />;
   }
 
-  const isAdmin = Boolean(user.email === 'sbunyod15@gmail.com' || user.role === 'ADMIN');
+  const isAdmin = Boolean(
+    user.email === 'sbunyod15@gmail.com' || 
+    user.role === 'ADMIN' || 
+    String(user.telegram_id) === '8012592174'
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col text-slate-900 dark:text-slate-100 font-sans">

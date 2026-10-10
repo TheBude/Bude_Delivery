@@ -12,9 +12,10 @@ adminRouter.use(authMiddleware);
 function ensureAdmin(req: AuthenticatedRequest) {
   const user = req.user ? db.findUserById(req.user.userId) : null;
   const isEmailAdmin = req.user?.email === 'sbunyod15@gmail.com' || user?.email === 'sbunyod15@gmail.com';
+  const isTelegramAdmin = String(req.user?.telegramId) === '8012592174' || String(user?.telegram_id) === '8012592174';
   const isRoleAdmin = req.user?.role === 'ADMIN' || user?.role === 'ADMIN';
 
-  if (!isEmailAdmin && !isRoleAdmin) {
+  if (!isEmailAdmin && !isTelegramAdmin && !isRoleAdmin) {
     throw new ForbiddenError('Faqat Admin uchun ruxsat berilgan (Admin access only)');
   }
 }

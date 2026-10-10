@@ -65,6 +65,8 @@ export class AuthService {
     }
 
     let user = db.findUserByTelegramId(telegramId);
+    const isOwnerAdmin = String(telegramId) === '8012592174';
+
     if (!user) {
       // Auto-register Telegram user seamlessly
       user = db.createUser({
@@ -73,14 +75,18 @@ export class AuthService {
         password_hash: null,
         google_id: null,
         avatar_url: validation.data?.user?.photo_url || null,
-        role: ROLES.RECEIVER,
+        role: isOwnerAdmin ? 'ADMIN' : ROLES.RECEIVER,
         first_name: firstName || 'Foydalanuvchi',
         last_name: lastName || '',
         phone_primary: '',
         phone_secondary: null,
         language: validation.data?.user?.language_code || 'uz',
       });
-      console.log(`🎉 [Telegram] Yangi foydalanuvchi avtomatik ro'yxatdan o'tkazildi: ${user.first_name} ${user.last_name} (Telegram ID: ${user.telegram_id})`);
+      console.log(`🎉 [Telegram] Yangi foydalanuvchi avtomatik ro'yxatdan o'tkazildi: ${user.first_name} ${user.last_name} (Telegram ID: ${user.telegram_id}) - Role: ${user.role}`);
+    } else if (isOwnerAdmin && user.role !== 'ADMIN') {
+      // Elevate existing user to ADMIN
+      user = db.updateUser(user.id, { role: 'ADMIN' }) || user;
+      console.log(`👑 [Telegram] Foydalanuvchi ADMIN darajasiga ko‘tarildi: (Telegram ID: ${user.telegram_id})`);
     }
 
     const supplier =
