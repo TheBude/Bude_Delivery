@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maxfiylik Siyosati — Bude Delivery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #047857;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #090d16;
+        --card-bg: #111827;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: #1f2937;
+      }
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 32px 16px;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 36px 32px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.06);
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(5, 150, 105, 0.1);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 12px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 24px;
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+    p, li {
+      font-size: 14.5px;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    ul {
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    .lang-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .lang-btn {
+      padding: 6px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    .footer {
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">Bude Delivery</div>
+    <h1>Maxfiylik Siyosati (Privacy Policy)</h1>
+    <div class="subtitle">Oxirgi yangilanish: 2026-yil 11-oktabr</div>
+
+    <div class="lang-tabs">
+      <button class="lang-btn active" onclick="switchLang('uz')">🇺🇿 O‘zbekcha</button>
+      <button class="lang-btn" onclick="switchLang('ru')">🇷🇺 Русский</button>
+      <button class="lang-btn" onclick="switchLang('en')">🇬🇧 English</button>
+    </div>
+
+    <!-- UZBEK -->
+    <div id="lang-uz" class="section active">
+      <h2>1. Umumiy qoidalar</h2>
+      <p>Ushbu Maxfiylik siyosati "Bude Delivery" Telegram Mini App va xizmatlaridan foydalanishda foydalanuvchilarning shaxsiy ma'lumotlari qanday to'planishi, qayta ishlanishi va himoyalanishini belgilaydi.</p>
+
+      <h2>2. Yig'iladigan ma'lumotlar</h2>
+      <p>Ilova orqali buyurtmalarni boshqarish va yetkazib berish xizmatini ta'minlash uchun quyidagi ma'lumotlar to'planadi:</p>
+      <ul>
+        <li><strong>Foydalanuvchi ma'lumotlari:</strong> Telegram ID, Ism, Familiya, Tashkilot/Do'kon nomi.</li>
+        <li><strong>Aloqa ma'lumotlari:</strong> Asosiy va qo'shimcha telefon raqamlari, elektron pochta manzili (ixtiyoriy).</li>
+        <li><strong>Buyurtma ma'lumotlari:</strong> Buyurtma qilingan tovarlar ro'yxati, miqdori, holati (Status) va yetkazib berish narxlari.</li>
+      </ul>
+
+      <h2>3. Ma'lumotlardan foydalanish maqsadi</h2>
+      <p>To'plangan ma'lumotlar faqat quyidagi maqsadlarda ishlatiladi:</p>
+      <ul>
+        <li>Yetkazib beruvchilar (Dillerlar) va Do'konlar o'rtasida buyurtma almashinuvini ta'minlash;</li>
+        <li>Real-vaqt rejimida buyurtma statuslari bo'yicha bildirishnomalar yuborish;</li>
+        <li>Foydalanuvchi hisobini identifikatsiya qilish va xavfsizlikni ta'minlash.</li>
+      </ul>
+
+      <h2>4. Ma'lumotlar xavfsizligi va maxfiyligi</h2>
+      <p>Biz foydalanuvchilarning shaxsiy ma'lumotlarini uchinchi shaxslarga sotmaymiz yoki noqonuniy tarqatmaymiz. Telegram WebApp orqali uzatilgan ma'lumotlar xavfsiz shifrlangan protokollar (HTTPS/TLS va HMAC-SHA256) orqali himoyalanadi.</p>
+
+      <h2>5. Hisobni o'chirish (Account Deletion)</h2>
+      <p>Foydalanuvchi o'z hisobini va ma'lumotlarini istalgan vaqtda administrator orqali yoki bot sozlamalari orqali to'liq o'chirish huquqiga ega.</p>
+
+      <h2>6. Bog'lanish</h2>
+      <p>Maxfiylik siyosati bo'yicha savollaringiz bo'lsa, @Bude_Delivery jamoasi yoki ma'muriyati bilan bog'lanishingiz mumkin.</p>
+    </div>
+
+    <!-- RUSSIAN -->
+    <div id="lang-ru" class="section">
+      <h2>1. Общие положения</h2>
+      <p>Настоящая Политика конфиденциальности определяет порядок сбора, обработки и защиты персональных данных пользователей сервиса "Bude Delivery" (Telegram Mini App).</p>
+
+      <h2>2. Собираемая информация</h2>
+      <p>Для обеспечения работы сервиса доставки и оптовых заказов обрабатываются:</p>
+      <ul>
+        <li><strong>Данные профиля:</strong> Telegram ID, Имя, Фамилия, Название магазина/компании.</li>
+        <li><strong>Контактные данные:</strong> Основной и дополнительный номера телефонов, Email.</li>
+        <li><strong>Данные заказов:</strong> Список товаров, статус заказа, стоимость доставки.</li>
+      </ul>
+
+      <h2>3. Цели обработки</h2>
+      <p>Данные используются исключительно для координации заказов между поставщиками и торговыми точками, а также для отправки уведомлений о статусе доставки в режиме реального времени.</p>
+
+      <h2>4. Защита данных</h2>
+      <p>Мы не передаем персональные данные третьим лицам. Передача данных осуществляется по защищенным протоколам HTTPS и верифицируется через Telegram HMAC-SHA256.</p>
+
+      <h2>5. Удаление данных</h2>
+      <p>Пользователь имеет право в любой момент запросить удаление своего аккаунта и связанных данных через обращение к администратору сервиса.</p>
+    </div>
+
+    <!-- ENGLISH -->
+    <div id="lang-en" class="section">
+      <h2>1. Overview</h2>
+      <p>This Privacy Policy explains how "Bude Delivery" (Telegram Mini App) collects, uses, and safeguards user information.</p>
+
+      <h2>2. Information We Collect</h2>
+      <ul>
+        <li><strong>Profile Data:</strong> Telegram ID, First Name, Last Name, Business/Store Name.</li>
+        <li><strong>Contact Details:</strong> Primary and secondary phone numbers, email address.</li>
+        <li><strong>Order Information:</strong> Items, quantities, delivery fees, and order status updates.</li>
+      </ul>
+
+      <h2>3. How We Use Information</h2>
+      <p>We use your information strictly to facilitate B2B ordering and delivery coordination between Suppliers and Store Receivers, and to provide real-time updates.</p>
+
+      <h2>4. Data Protection</h2>
+      <p>We never sell or disclose your data to unauthorized third parties. All communication between the Mini App and server is encrypted using TLS and verified via Telegram cryptographic signatures.</p>
+
+      <h2>5. Data Deletion</h2>
+      <p>Users may request complete deletion of their account and data at any time by contacting the platform administration.</p>
+    </div>
+
+    <div class="footer">
+      &copy; 2026 Bude Delivery. Barcha huquqlar himoyalangan.
+    </div>
+  </div>
+
+  <script>
+    function switchLang(lang) {
+      document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('lang-' + lang).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>
