@@ -33,6 +33,7 @@ export async function initPostgresTables() {
       );
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS plain_password TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);
 
       CREATE TABLE IF NOT EXISTS suppliers (
         id VARCHAR(255) PRIMARY KEY,
@@ -205,8 +206,8 @@ export async function syncUserToPostgres(user: User) {
   if (!config.databaseUrl) return;
   try {
     await pgPool.query(
-      `INSERT INTO users (id, telegram_id, email, password_hash, google_id, avatar_url, role, first_name, last_name, phone_primary, phone_secondary, plain_password, language, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      `INSERT INTO users (id, telegram_id, email, password_hash, google_id, avatar_url, role, first_name, last_name, phone_primary, phone_secondary, plain_password, company_name, language, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        ON CONFLICT (id) DO UPDATE SET
          telegram_id = EXCLUDED.telegram_id,
          email = EXCLUDED.email,
@@ -218,6 +219,7 @@ export async function syncUserToPostgres(user: User) {
          phone_primary = EXCLUDED.phone_primary,
          phone_secondary = EXCLUDED.phone_secondary,
          plain_password = EXCLUDED.plain_password,
+         company_name = EXCLUDED.company_name,
          language = EXCLUDED.language,
          updated_at = EXCLUDED.updated_at;`,
       [
@@ -233,6 +235,7 @@ export async function syncUserToPostgres(user: User) {
         user.phone_primary,
         user.phone_secondary || null,
         user.plain_password || null,
+        user.company_name || null,
         user.language,
         user.created_at,
         user.updated_at,

@@ -3,6 +3,7 @@ import { useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { Header } from './components/common/Header';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { RegisterScreen } from './components/auth/RegisterScreen';
 import { ReceiverDashboard } from './components/receiver/ReceiverDashboard';
 import { SupplierDashboard } from './components/supplier/SupplierDashboard';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -11,6 +12,7 @@ import { Truck } from 'lucide-react';
 export const MainContent: React.FC = () => {
   const { user, isLoading, isNewUser } = useAuth();
   const [isAdminViewOpen, setIsAdminViewOpen] = React.useState<boolean>(false);
+  const [authView, setAuthView] = React.useState<'ONBOARDING' | 'EMAIL'>('ONBOARDING');
 
   if (isLoading) {
     return (
@@ -27,7 +29,10 @@ export const MainContent: React.FC = () => {
 
   // Not authenticated or new Telegram user needing profile setup
   if (!user || isNewUser) {
-    return <AuthScreen />;
+    if (authView === 'EMAIL') {
+      return <AuthScreen onSwitchToRegister={() => setAuthView('ONBOARDING')} />;
+    }
+    return <RegisterScreen onSwitchToEmailAuth={() => setAuthView('EMAIL')} />;
   }
 
   const isAdmin = Boolean(

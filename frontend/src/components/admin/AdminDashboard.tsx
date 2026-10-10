@@ -289,10 +289,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                       )}
                     </h4>
                     <p className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5 flex-wrap">
+                      {u.company_name && (
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                          🏢 {u.company_name}
+                        </span>
+                      )}
                       {u.phone_primary && (
                         <span className="flex items-center gap-1">
                           <Phone className="w-3 h-3" />
                           {u.phone_primary}
+                        </span>
+                      )}
+                      {u.phone_secondary && (
+                        <span className="text-[10px] text-slate-400">
+                          (qo‘shimcha: {u.phone_secondary})
                         </span>
                       )}
                       {u.email && <span>• {u.email}</span>}

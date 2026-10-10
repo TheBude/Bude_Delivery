@@ -32,7 +32,11 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export const AuthScreen: React.FC = () => {
+interface AuthScreenProps {
+  onSwitchToRegister?: () => void;
+}
+
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) => {
   const { t, i18n } = useTranslation();
   const { loginWithEmail, registerWithEmail, loginWithGoogle, loginWithDevRole, isLoading } = useAuth();
 
@@ -69,6 +73,10 @@ export const AuthScreen: React.FC = () => {
   const handleTabSwitch = (tab: 'LOGIN' | 'REGISTER') => {
     hapticSelection();
     setError(null);
+    if (tab === 'REGISTER' && onSwitchToRegister) {
+      onSwitchToRegister();
+      return;
+    }
     setActiveTab(tab);
   };
 

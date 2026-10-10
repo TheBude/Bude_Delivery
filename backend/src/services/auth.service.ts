@@ -67,24 +67,22 @@ export class AuthService {
     let user = db.findUserByTelegramId(telegramId);
     const isOwnerAdmin = String(telegramId) === '8012592174';
 
-    if (!user) {
-      // Auto-register Telegram user seamlessly
-      user = db.createUser({
-        telegram_id: telegramId,
-        email: null,
-        password_hash: null,
-        google_id: null,
-        avatar_url: validation.data?.user?.photo_url || null,
-        role: isOwnerAdmin ? 'ADMIN' : ROLES.RECEIVER,
-        first_name: firstName || 'Foydalanuvchi',
-        last_name: lastName || '',
-        phone_primary: '',
-        phone_secondary: null,
-        language: validation.data?.user?.language_code || 'uz',
-      });
-      console.log(`🎉 [Telegram] Yangi foydalanuvchi avtomatik ro'yxatdan o'tkazildi: ${user.first_name} ${user.last_name} (Telegram ID: ${user.telegram_id}) - Role: ${user.role}`);
-    } else if (isOwnerAdmin && user.role !== 'ADMIN') {
-      // Elevate existing user to ADMIN
+    // If user does not exist or has not completed onboarding (no phone number), prompt onboarding wizard
+    if (!user || !user.phone_primary || user.phone_primary.trim() === '') {
+      return {
+        isNewUser: true,
+        telegramUser: {
+          id: telegramId,
+          first_name: user?.first_name || firstName || '',
+          last_name: user?.last_name || lastName || '',
+          language_code: user?.language || validation.data?.user?.language_code || 'uz',
+          photo_url: user?.avatar_url || validation.data?.user?.photo_url || null,
+        },
+      };
+    }
+
+    if (isOwnerAdmin && user.role !== 'ADMIN') {
+      // Elevate existing owner user to ADMIN
       user = db.updateUser(user.id, { role: 'ADMIN' }) || user;
       console.log(`👑 [Telegram] Foydalanuvchi ADMIN darajasiga ko‘tarildi: (Telegram ID: ${user.telegram_id})`);
     }
@@ -293,15 +291,19 @@ export class AuthService {
    */
   public async registerTelegram(input: RegisterTelegramInput) {
     let user = input.telegram_id ? db.findUserByTelegramId(input.telegram_id) : undefined;
+    const isOwnerAdmin = String(input.telegram_id) === '8012592174';
+    const role = isOwnerAdmin ? 'ADMIN' : input.role;
+    const companyName = input.company_name?.trim() || `${input.first_name} Do'koni`;
 
     if (user) {
       user = db.updateUser(user.id, {
-        role: input.role,
-        first_name: input.first_name,
-        last_name: input.last_name,
-        phone_primary: input.phone_primary,
-        phone_secondary: input.phone_secondary || null,
-        language: input.language,
+        role,
+        first_name: input.first_name.trim(),
+        last_name: input.last_name.trim(),
+        phone_primary: input.phone_primary.trim(),
+        phone_secondary: input.phone_secondary?.trim() || null,
+        company_name: companyName,
+        language: input.language || 'uz',
       });
     } else {
       user = db.createUser({
@@ -310,12 +312,13 @@ export class AuthService {
         password_hash: null,
         google_id: null,
         avatar_url: null,
-        role: input.role,
-        first_name: input.first_name,
-        last_name: input.last_name,
-        phone_primary: input.phone_primary,
-        phone_secondary: input.phone_secondary || null,
-        language: input.language,
+        role,
+        first_name: input.first_name.trim(),
+        last_name: input.last_name.trim(),
+        phone_primary: input.phone_primary.trim(),
+        phone_secondary: input.phone_secondary?.trim() || null,
+        company_name: companyName,
+        language: input.language || 'uz',
       });
     }
 
@@ -324,9 +327,8 @@ export class AuthService {
     }
 
     let supplier: Supplier | undefined;
-    if (user.role === ROLES.SUPPLIER) {
+    if (input.role === ROLES.SUPPLIER || user.role === ROLES.SUPPLIER) {
       const existingSupplier = db.findSupplierByUserId(user.id);
-      const companyName = input.company_name?.trim() || `${user.first_name} Yetkazib Berish`;
       const deliveryFee = input.delivery_fee ?? config.defaultDeliveryFee;
       const isFree = input.is_free_delivery ?? false;
 
