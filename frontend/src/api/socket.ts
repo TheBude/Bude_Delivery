@@ -1,7 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { getToken } from './client';
-
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+import { APP_CONFIG } from '../constants';
 
 let socket: Socket | null = null;
 
@@ -12,7 +11,7 @@ export const initSocket = (userId?: string, role?: string): Socket => {
 
   const token = getToken();
 
-  socket = io(SOCKET_URL, {
+  socket = io(APP_CONFIG.SOCKET_URL, {
     auth: {
       token: token || undefined,
       userId,
@@ -20,8 +19,9 @@ export const initSocket = (userId?: string, role?: string): Socket => {
     },
     transports: ['websocket', 'polling'],
     reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 2000,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1500,
+    reconnectionDelayMax: 5000,
   });
 
   socket.on('connect', () => {

@@ -4,6 +4,7 @@ import {
   Search, DollarSign, Calendar, Phone, Key, Trash2, Eye, EyeOff, ShieldCheck, X
 } from 'lucide-react';
 import { api } from '../../api/client';
+import { getSocket } from '../../api/socket';
 import type { User, Supplier, Order, Role } from '../../types';
 import { hapticImpact } from '../../utils/telegram';
 
@@ -48,20 +49,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     orders: [],
   });
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.admin.getOverview();
       setData(res);
     } catch (err: any) {
       console.error('Failed to load admin overview:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
+
+    // Real-time Socket connection
+    const socket = getSocket();
+    const handleSync = () => {
+      fetchData(true);
+    };
+
+    if (socket) {
+      socket.on('order:new', handleSync);
+      socket.on('order:new_broadcast', handleSync);
+      socket.on('order:status_updated', handleSync);
+      socket.on('order:status_broadcast', handleSync);
+    }
+
+    // Resilient silent background poll every 6s
+    const pollInterval = setInterval(() => {
+      fetchData(true);
+    }, 6000);
+
+    return () => {
+      if (socket) {
+        socket.off('order:new', handleSync);
+        socket.off('order:new_broadcast', handleSync);
+        socket.off('order:status_updated', handleSync);
+        socket.off('order:status_broadcast', handleSync);
+      }
+      clearInterval(pollInterval);
+    };
   }, []);
 
   const handleRoleChange = async (userId: string, newRole: Role) => {

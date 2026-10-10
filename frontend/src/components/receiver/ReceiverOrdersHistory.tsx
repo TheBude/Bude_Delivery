@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api/client';
-import { getSocket } from '../../api/socket';
+import { getSocket, initSocket } from '../../api/socket';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Package, Truck, Phone, Clock, MapPin, CheckCircle2, 
@@ -38,9 +38,9 @@ export const ReceiverOrdersHistory: React.FC = () => {
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await api.orders.getReceiverOrders();
       setOrders(data);
       if (data.length > 0 && !expandedOrderId) {
@@ -49,32 +49,70 @@ export const ReceiverOrdersHistory: React.FC = () => {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOrders();
 
-    // Socket.io real-time listener for order updates
-    const socket = getSocket();
-    if (socket && user?.id) {
-      socket.emit('join:receiver', user.id);
+    // 1. Socket.io real-time listener for order updates
+    const socket = getSocket() || initSocket(user?.id, 'RECEIVER');
 
-      const handleStatusUpdate = (data: any) => {
-        console.log('[Socket] Order status updated in Receiver view:', data);
-        hapticImpact('medium');
-        setOrders((prev) =>
-          prev.map((ord) => (ord.id === data.orderId ? { ...ord, ...data.order } : ord))
-        );
-      };
+    const joinRoom = () => {
+      if (user?.id) {
+        socket.emit('join:receiver', user.id);
+      }
+    };
 
-      socket.on('order:status_updated', handleStatusUpdate);
-
-      return () => {
-        socket.off('order:status_updated', handleStatusUpdate);
-      };
+    if (socket.connected) {
+      joinRoom();
     }
+    socket.on('connect', joinRoom);
+
+    const handleStatusUpdate = (data: any) => {
+      if (!data?.orderId && !data?.order?.id) return;
+      const targetId = data.orderId || data.order.id;
+      console.log('[Socket] Order status updated in Receiver view:', data);
+      hapticImpact('medium');
+      setOrders((prev) =>
+        prev.map((ord) => (ord.id === targetId ? { ...ord, ...data.order, status: data.status || data.order.status } : ord))
+      );
+    };
+
+    const handleNewOrder = (data: any) => {
+      if (!data?.order) return;
+      if (data.order.receiver_id === user?.id) {
+        setOrders((prev) => {
+          if (prev.some((o) => o.id === data.order.id)) return prev;
+          return [data.order, ...prev];
+        });
+      }
+    };
+
+    socket.on('order:status_updated', handleStatusUpdate);
+    socket.on('order:status_broadcast', handleStatusUpdate);
+    socket.on('order:new', handleNewOrder);
+    socket.on('order:new_broadcast', handleNewOrder);
+
+    // 2. Real-time background sync (every 5 seconds)
+    const pollInterval = setInterval(async () => {
+      try {
+        const latest = await api.orders.getReceiverOrders();
+        setOrders(latest);
+      } catch (e) {
+        // Silent
+      }
+    }, 5000);
+
+    return () => {
+      socket.off('connect', joinRoom);
+      socket.off('order:status_updated', handleStatusUpdate);
+      socket.off('order:status_broadcast', handleStatusUpdate);
+      socket.off('order:new', handleNewOrder);
+      socket.off('order:new_broadcast', handleNewOrder);
+      clearInterval(pollInterval);
+    };
   }, [user?.id]);
 
   const toggleExpand = (id: string) => {
@@ -180,7 +218,7 @@ export const ReceiverOrdersHistory: React.FC = () => {
           <p className="text-xs text-slate-500">Real-time yetkazib berish monitoringi</p>
         </div>
         <button
-          onClick={fetchOrders}
+          onClick={() => fetchOrders()}
           className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 active:scale-95 transition"
           title="Yangilash"
         >

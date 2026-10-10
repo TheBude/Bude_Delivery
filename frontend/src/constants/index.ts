@@ -7,7 +7,8 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const APP_CONFIG = {
-  API_BASE: import.meta.env.VITE_API_BASE || 'http://localhost:5000/api',
+  API_BASE: import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? 'https://bude-delivery.onrender.com/api' : 'http://localhost:5000/api'),
+  SOCKET_URL: import.meta.env.VITE_SOCKET_URL || (import.meta.env.PROD ? 'https://bude-delivery.onrender.com' : 'http://localhost:5000'),
   DEFAULT_DELIVERY_FEE: 15000,
   DEFAULT_LANGUAGE: 'uz',
 } as const;

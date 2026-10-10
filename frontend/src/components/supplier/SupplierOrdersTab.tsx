@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api/client';
-import { getSocket } from '../../api/socket';
+import { getSocket, initSocket } from '../../api/socket';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Check, X, Truck, Phone, Clock, MapPin, 
@@ -34,50 +34,104 @@ export const SupplierOrdersTab: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasNewAlert, setHasNewAlert] = useState<boolean>(false);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await api.orders.getSupplierOrders();
       setOrders(data);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOrders();
 
-    const socket = getSocket();
-    if (socket && supplier?.id) {
-      socket.emit('join:supplier', supplier.id);
+    // 1. Ensure Socket.IO is initialized & connected
+    const socket = getSocket() || initSocket(supplier?.user_id, 'SUPPLIER');
 
-      // Listen for new orders
-      const handleNewOrder = (data: any) => {
-        console.log('[Socket] New incoming order for supplier:', data);
-        playNotificationSound();
-        hapticNotification('success');
-        setHasNewAlert(true);
-        setOrders((prev) => [data.order, ...prev]);
-      };
+    const joinRoom = () => {
+      if (supplier?.id) {
+        socket.emit('join:supplier', supplier.id);
+        console.log('[Socket] Joined supplier room:', supplier.id);
+      }
+    };
 
-      // Listen for order status updates
-      const handleStatusUpdate = (data: any) => {
-        setOrders((prev) =>
-          prev.map((ord) => (ord.id === data.orderId ? { ...ord, ...data.order } : ord))
-        );
-      };
-
-      socket.on('order:new', handleNewOrder);
-      socket.on('order:status_updated', handleStatusUpdate);
-
-      return () => {
-        socket.off('order:new', handleNewOrder);
-        socket.off('order:status_updated', handleStatusUpdate);
-      };
+    if (socket.connected) {
+      joinRoom();
     }
-  }, [supplier?.id]);
+    socket.on('connect', joinRoom);
+
+    // Handler for incoming new order
+    const handleNewOrder = (data: any) => {
+      if (!data?.order) return;
+      console.log('[Socket] Real-time new order received:', data.order);
+      playNotificationSound();
+      hapticNotification('success');
+      setHasNewAlert(true);
+      setOrders((prev) => {
+        // Prevent duplicates
+        if (prev.some((o) => o.id === data.order.id)) return prev;
+        return [data.order, ...prev];
+      });
+    };
+
+    // Handler for status update
+    const handleStatusUpdate = (data: any) => {
+      if (!data?.orderId && !data?.order?.id) return;
+      const targetId = data.orderId || data.order.id;
+      setOrders((prev) =>
+        prev.map((ord) => (ord.id === targetId ? { ...ord, ...data.order, status: data.status || data.order.status } : ord))
+      );
+    };
+
+    // Listen to real-time events
+    socket.on('order:new', handleNewOrder);
+    socket.on('order:new_broadcast', handleNewOrder);
+    socket.on('order:status_updated', handleStatusUpdate);
+    socket.on('order:status_broadcast', handleStatusUpdate);
+
+    // Custom browser event (for demo/mock compatibility)
+    const handleCustomOrder = (e: any) => {
+      if (e?.detail?.order) {
+        handleNewOrder({ order: e.detail.order });
+      }
+    };
+    window.addEventListener('bude:order_new', handleCustomOrder);
+
+    // 2. Real-time silent background sync (every 4 seconds)
+    // Ensures real-time order arrival even if websocket network flickers
+    const pollInterval = setInterval(async () => {
+      try {
+        const latest = await api.orders.getSupplierOrders();
+        setOrders((prev) => {
+          const prevIds = new Set(prev.map((o) => o.id));
+          const newOrders = latest.filter((o) => !prevIds.has(o.id));
+          if (newOrders.length > 0) {
+            console.log('[Real-time] Detected new orders via background sync:', newOrders);
+            playNotificationSound();
+            hapticNotification('success');
+            setHasNewAlert(true);
+          }
+          return latest;
+        });
+      } catch (e) {
+        // Silent
+      }
+    }, 4000);
+
+    return () => {
+      socket.off('connect', joinRoom);
+      socket.off('order:new', handleNewOrder);
+      socket.off('order:new_broadcast', handleNewOrder);
+      socket.off('order:status_updated', handleStatusUpdate);
+      socket.off('order:status_broadcast', handleStatusUpdate);
+      window.removeEventListener('bude:order_new', handleCustomOrder);
+      clearInterval(pollInterval);
+    };
+  }, [supplier?.id, supplier?.user_id]);
 
   const handleOpenAcceptModal = (order: any) => {
     hapticImpact('medium');
