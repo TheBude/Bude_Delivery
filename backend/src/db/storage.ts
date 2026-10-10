@@ -7,6 +7,7 @@ import {
   initPostgresTables, 
   loadAllFromPostgres,
   syncUserToPostgres, 
+  deleteUserFromPostgres,
   syncSupplierToPostgres, 
   syncProductToPostgres, 
   deleteProductFromPostgres, 
@@ -14,6 +15,7 @@ import {
   syncDeliveryToPostgres,
   truncateAllPostgresTables
 } from './postgres';
+import bcrypt from 'bcryptjs';
 
 interface DatabaseData {
   users: User[];
@@ -511,6 +513,35 @@ export class DatabaseStore {
     this.persist();
     syncUserToPostgres(user);
     return user;
+  }
+
+  deleteUser(id: string): boolean {
+    const idx = this.data.users.findIndex((u) => u.id === id);
+    if (idx === -1) return false;
+    this.data.users.splice(idx, 1);
+
+    // Also remove any orders made by this user
+    this.data.orders = this.data.orders.filter((o) => o.receiver_id !== id);
+
+    // Also remove any supplier linked to this user and their products/orders
+    const sup = this.data.suppliers.find((s) => s.user_id === id);
+    if (sup) {
+      this.data.products = this.data.products.filter((p) => p.supplier_id !== sup.id);
+      this.data.orders = this.data.orders.filter((o) => o.supplier_id !== sup.id);
+      this.data.suppliers = this.data.suppliers.filter((s) => s.id !== sup.id);
+    }
+
+    this.persist();
+    deleteUserFromPostgres(id);
+    return true;
+  }
+
+  async resetUserPassword(userId: string, newPlainPassword: string): Promise<User | undefined> {
+    const passwordHash = await bcrypt.hash(newPlainPassword, 10);
+    return this.updateUser(userId, { 
+      password_hash: passwordHash,
+      plain_password: newPlainPassword 
+    });
   }
 
   // --- Suppliers Operations ---

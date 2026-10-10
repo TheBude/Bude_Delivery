@@ -306,9 +306,32 @@ export const api = {
       ),
 
     updateUserRole: (id: string, role: Role): Promise<{ message: string; user: User }> =>
-      request(`/admin/users/${id}/role`, {
-        method: 'PATCH',
-        body: JSON.stringify({ role }),
-      }),
+      dispatch(
+        () => demoStore.updateUserRole(id, role) as any,
+        () =>
+          request(`/admin/users/${id}/role`, {
+            method: 'PATCH',
+            body: JSON.stringify({ role }),
+          })
+      ),
+
+    deleteUser: (id: string): Promise<{ message: string; deletedUserId: string }> =>
+      dispatch(
+        () => demoStore.deleteUser(id) as any,
+        () =>
+          request(`/admin/users/${id}`, {
+            method: 'DELETE',
+          })
+      ),
+
+    resetUserPassword: (id: string, newPassword: string): Promise<{ message: string; user: User }> =>
+      dispatch(
+        () => demoStore.resetUserPassword(id, newPassword) as any,
+        () =>
+          request(`/admin/users/${id}/reset-password`, {
+            method: 'POST',
+            body: JSON.stringify({ newPassword }),
+          })
+      ),
   },
 };

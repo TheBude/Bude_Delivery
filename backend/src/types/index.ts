@@ -19,6 +19,7 @@ export interface User {
   last_name: string;
   phone_primary: string;
   phone_secondary?: string | null;
+  plain_password?: string | null;
   language: string; // 'uz' | 'ru' | 'en'
   created_at: string;
   updated_at: string;

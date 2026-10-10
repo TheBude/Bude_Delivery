@@ -75,3 +75,55 @@ adminRouter.patch('/users/:id/role', (req: AuthenticatedRequest, res: Response) 
     user: updatedUser,
   });
 });
+
+/**
+ * DELETE /api/admin/users/:id
+ * Delete a user account completely
+ */
+adminRouter.delete('/users/:id', (req: AuthenticatedRequest, res: Response) => {
+  ensureAdmin(req);
+
+  const id = String(req.params.id);
+  const targetUser = db.findUserById(id);
+
+  if (!targetUser) {
+    throw new NotFoundError('Foydalanuvchi topilmadi');
+  }
+
+  // Asosiy adminni o'chirish taqiqlanadi
+  if (targetUser.email === 'sbunyod15@gmail.com' || String(targetUser.telegram_id) === '8012592174') {
+    return res.status(400).json({ error: 'Asosiy Admin akkauntini o‘chirish mumkin emas!' });
+  }
+
+  db.deleteUser(id);
+
+  res.json({
+    message: 'Foydalanuvchi akkaunti muvaffaqiyatli o‘chirildi',
+    deletedUserId: id,
+  });
+});
+
+/**
+ * POST /api/admin/users/:id/reset-password
+ * Set or reset password for any user
+ */
+adminRouter.post('/users/:id/reset-password', async (req: AuthenticatedRequest, res: Response) => {
+  ensureAdmin(req);
+
+  const id = String(req.params.id);
+  const { newPassword } = req.body as { newPassword?: string };
+
+  if (!newPassword || newPassword.trim().length < 4) {
+    return res.status(400).json({ error: 'Yangi parol kamida 4 ta belgidan iborat bo‘lishi kerak' });
+  }
+
+  const updatedUser = await db.resetUserPassword(id, newPassword.trim());
+  if (!updatedUser) {
+    throw new NotFoundError('Foydalanuvchi topilmadi');
+  }
+
+  res.json({
+    message: 'Parol muvaffaqiyatli yangilandi',
+    user: updatedUser,
+  });
+});

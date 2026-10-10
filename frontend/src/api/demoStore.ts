@@ -705,5 +705,32 @@ export const demoStore = {
       orders: state.orders,
     };
   },
+
+  updateUserRole(id: string, role: string) {
+    if (state.users[id]) {
+      state.users[id].role = role as any;
+      saveState(state);
+      return { message: 'Muvaffaqiyatli yangilandi', user: state.users[id] };
+    }
+    throw new Error('Foydalanuvchi topilmadi');
+  },
+
+  deleteUser(id: string) {
+    if (state.users[id]) {
+      delete state.users[id];
+      saveState(state);
+      return { message: 'O‘chirildi', deletedUserId: id };
+    }
+    throw new Error('Foydalanuvchi topilmadi');
+  },
+
+  resetUserPassword(id: string, newPassword: string) {
+    if (state.users[id]) {
+      (state.users[id] as any).plain_password = newPassword;
+      saveState(state);
+      return { message: 'Parol yangilandi', user: state.users[id] };
+    }
+    throw new Error('Foydalanuvchi topilmadi');
+  },
 };
 

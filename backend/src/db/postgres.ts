@@ -26,10 +26,13 @@ export async function initPostgresTables() {
         last_name VARCHAR(255) NOT NULL,
         phone_primary VARCHAR(50) NOT NULL,
         phone_secondary VARCHAR(50),
+        plain_password TEXT,
         language VARCHAR(10) DEFAULT 'uz',
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS plain_password TEXT;
 
       CREATE TABLE IF NOT EXISTS suppliers (
         id VARCHAR(255) PRIMARY KEY,
@@ -115,6 +118,7 @@ export async function loadAllFromPostgres() {
       users: u.rows.map((row: any) => ({
         ...row,
         telegram_id: row.telegram_id ? Number(row.telegram_id) : null,
+        plain_password: row.plain_password || null,
         created_at: new Date(row.created_at).toISOString(),
         updated_at: new Date(row.updated_at).toISOString(),
       })),
@@ -173,12 +177,36 @@ export async function truncateAllPostgresTables() {
 /**
  * Synchronize users to PostgreSQL
  */
+export async function deleteUserFromPostgres(userId: string) {
+  if (!config.databaseUrl) return;
+  try {
+    // Delete any orders where user is receiver
+    await pgPool.query('DELETE FROM orders WHERE receiver_id = $1', [userId]);
+
+    // Check if user has a supplier and clean up
+    const supRes = await pgPool.query('SELECT id FROM suppliers WHERE user_id = $1', [userId]);
+    for (const sup of supRes.rows) {
+      await pgPool.query('DELETE FROM orders WHERE supplier_id = $1', [sup.id]);
+      await pgPool.query('DELETE FROM products WHERE supplier_id = $1', [sup.id]);
+      await pgPool.query('DELETE FROM suppliers WHERE id = $1', [sup.id]);
+    }
+
+    await pgPool.query('DELETE FROM users WHERE id = $1', [userId]);
+    console.log(`🗑️ [PostgreSQL] User and related data deleted from database: ${userId}`);
+  } catch (err: any) {
+    console.error('[PostgreSQL] deleteUser error:', err.message);
+  }
+}
+
+/**
+ * Synchronize users to PostgreSQL
+ */
 export async function syncUserToPostgres(user: User) {
   if (!config.databaseUrl) return;
   try {
     await pgPool.query(
-      `INSERT INTO users (id, telegram_id, email, password_hash, google_id, avatar_url, role, first_name, last_name, phone_primary, phone_secondary, language, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      `INSERT INTO users (id, telegram_id, email, password_hash, google_id, avatar_url, role, first_name, last_name, phone_primary, phone_secondary, plain_password, language, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        ON CONFLICT (id) DO UPDATE SET
          telegram_id = EXCLUDED.telegram_id,
          email = EXCLUDED.email,
@@ -189,6 +217,7 @@ export async function syncUserToPostgres(user: User) {
          last_name = EXCLUDED.last_name,
          phone_primary = EXCLUDED.phone_primary,
          phone_secondary = EXCLUDED.phone_secondary,
+         plain_password = EXCLUDED.plain_password,
          language = EXCLUDED.language,
          updated_at = EXCLUDED.updated_at;`,
       [
@@ -203,6 +232,7 @@ export async function syncUserToPostgres(user: User) {
         user.last_name,
         user.phone_primary,
         user.phone_secondary || null,
+        user.plain_password || null,
         user.language,
         user.created_at,
         user.updated_at,

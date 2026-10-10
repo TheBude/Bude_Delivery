@@ -125,6 +125,7 @@ export class AuthService {
       telegram_id: null,
       email: normalizedEmail,
       password_hash: passwordHash,
+      plain_password: input.password,
       google_id: null,
       avatar_url: null,
       role: input.role,
