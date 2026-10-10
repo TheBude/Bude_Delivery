@@ -64,30 +64,37 @@ export class AuthService {
       }
     }
 
-    const existingUser = db.findUserByTelegramId(telegramId);
-    if (!existingUser) {
-      return {
-        isNewUser: true,
-        telegramUser: {
-          id: telegramId,
-          first_name: firstName,
-          last_name: lastName,
-        },
-      };
+    let user = db.findUserByTelegramId(telegramId);
+    if (!user) {
+      // Auto-register Telegram user seamlessly
+      user = db.createUser({
+        telegram_id: telegramId,
+        email: null,
+        password_hash: null,
+        google_id: null,
+        avatar_url: validation.data?.user?.photo_url || null,
+        role: ROLES.RECEIVER,
+        first_name: firstName || 'Foydalanuvchi',
+        last_name: lastName || '',
+        phone_primary: '',
+        phone_secondary: null,
+        language: validation.data?.user?.language_code || 'uz',
+      });
+      console.log(`🎉 [Telegram] Yangi foydalanuvchi avtomatik ro'yxatdan o'tkazildi: ${user.first_name} ${user.last_name} (Telegram ID: ${user.telegram_id})`);
     }
 
     const supplier =
-      existingUser.role === ROLES.SUPPLIER ? db.findSupplierByUserId(existingUser.id) : undefined;
+      user.role === ROLES.SUPPLIER ? db.findSupplierByUserId(user.id) : undefined;
     const token = generateToken({
-      userId: existingUser.id,
-      telegramId: existingUser.telegram_id,
-      email: existingUser.email,
-      role: existingUser.role,
+      userId: user.id,
+      telegramId: user.telegram_id,
+      email: user.email,
+      role: user.role,
     });
 
     return {
       isNewUser: false,
-      user: existingUser,
+      user,
       supplier,
       token,
     };
