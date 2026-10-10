@@ -11,8 +11,17 @@ import { Truck } from 'lucide-react';
 
 export const MainContent: React.FC = () => {
   const { user, isLoading, isNewUser } = useAuth();
-  const [isAdminViewOpen, setIsAdminViewOpen] = React.useState<boolean>(false);
   const [authView, setAuthView] = React.useState<'ONBOARDING' | 'EMAIL'>('ONBOARDING');
+
+  const isAdmin = Boolean(
+    user && (
+      user.email === 'sbunyod15@gmail.com' || 
+      user.role === 'ADMIN' || 
+      String(user.telegram_id) === '8012592174'
+    )
+  );
+
+  const [adminViewMode, setAdminViewMode] = React.useState<'ADMIN' | 'SUPPLIER' | 'RECEIVER'>('ADMIN');
 
   if (isLoading) {
     return (
@@ -35,18 +44,23 @@ export const MainContent: React.FC = () => {
     return <RegisterScreen onSwitchToEmailAuth={() => setAuthView('EMAIL')} />;
   }
 
-  const isAdmin = Boolean(
-    user.email === 'sbunyod15@gmail.com' || 
-    user.role === 'ADMIN' || 
-    String(user.telegram_id) === '8012592174'
-  );
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col text-slate-900 dark:text-slate-100 font-sans">
-      <Header onOpenAdmin={() => setIsAdminViewOpen(true)} isAdmin={isAdmin} />
+      <Header 
+        isAdmin={isAdmin}
+        adminViewMode={adminViewMode}
+        onAdminViewModeChange={(mode) => setAdminViewMode(mode)}
+        onOpenAdmin={() => setAdminViewMode('ADMIN')}
+      />
       <main className="flex-1 max-w-md w-full mx-auto px-4 py-4">
-        {isAdminViewOpen ? (
-          <AdminDashboard onBack={() => setIsAdminViewOpen(false)} />
+        {isAdmin ? (
+          adminViewMode === 'ADMIN' ? (
+            <AdminDashboard onBack={() => setAdminViewMode('SUPPLIER')} />
+          ) : adminViewMode === 'SUPPLIER' ? (
+            <SupplierDashboard />
+          ) : (
+            <ReceiverDashboard />
+          )
         ) : user.role === 'SUPPLIER' ? (
           <SupplierDashboard />
         ) : (

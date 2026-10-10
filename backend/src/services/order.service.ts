@@ -60,7 +60,20 @@ export class OrderService {
    * Get orders for specific supplier
    */
   public getSupplierOrders(userId: string) {
-    const supplier = db.findSupplierByUserId(userId);
+    let supplier = db.findSupplierByUserId(userId);
+    const user = db.findUserById(userId);
+    const isAdmin = user?.role === 'ADMIN';
+
+    if (!supplier && isAdmin) {
+      const allSups = db.getAllSuppliers();
+      supplier = allSups.length > 0 ? allSups[0] : db.createSupplier({
+        user_id: userId,
+        company_name: 'Bude Asosiy Logistika',
+        delivery_fee: 15000,
+        is_free_delivery: false,
+      });
+    }
+
     if (!supplier) {
       throw new NotFoundError('Ta\'minotchi profili topilmadi');
     }
@@ -82,13 +95,16 @@ export class OrderService {
    * Accept order and assign delivery courier details
    */
   public acceptOrder(userId: string, orderId: string, courierInput: AcceptOrderInput) {
+    const user = db.findUserById(userId);
+    const isAdmin = user?.role === 'ADMIN';
     const supplier = db.findSupplierByUserId(userId);
-    if (!supplier) {
+
+    if (!supplier && !isAdmin) {
       throw new ForbiddenError('Ruxsat berilmagan');
     }
 
     const order = db.findOrderById(orderId);
-    if (!order || order.supplier_id !== supplier.id) {
+    if (!order || (!isAdmin && order.supplier_id !== supplier?.id)) {
       throw new NotFoundError('Buyurtma topilmadi yoki sizga tegishli emas');
     }
 
@@ -120,13 +136,16 @@ export class OrderService {
    * Transition order status
    */
   public updateStatus(userId: string, orderId: string, nextStatus: OrderStatus) {
+    const user = db.findUserById(userId);
+    const isAdmin = user?.role === 'ADMIN';
     const supplier = db.findSupplierByUserId(userId);
-    if (!supplier) {
+
+    if (!supplier && !isAdmin) {
       throw new ForbiddenError('Ruxsat berilmagan');
     }
 
     const order = db.findOrderById(orderId);
-    if (!order || order.supplier_id !== supplier.id) {
+    if (!order || (!isAdmin && order.supplier_id !== supplier?.id)) {
       throw new NotFoundError('Buyurtma topilmadi');
     }
 
@@ -150,13 +169,16 @@ export class OrderService {
    * Reject order with mandatory reason
    */
   public rejectOrder(userId: string, orderId: string, reason: string) {
+    const user = db.findUserById(userId);
+    const isAdmin = user?.role === 'ADMIN';
     const supplier = db.findSupplierByUserId(userId);
-    if (!supplier) {
+
+    if (!supplier && !isAdmin) {
       throw new ForbiddenError('Ruxsat berilmagan');
     }
 
     const order = db.findOrderById(orderId);
-    if (!order || order.supplier_id !== supplier.id) {
+    if (!order || (!isAdmin && order.supplier_id !== supplier?.id)) {
       throw new NotFoundError('Buyurtma topilmadi');
     }
 

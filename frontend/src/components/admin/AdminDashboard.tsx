@@ -146,11 +146,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   };
 
   const filteredUsers = data.users.filter((u) => {
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
     const fullName = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase();
     const phone = (u.phone_primary || '').toLowerCase();
+    const phoneSec = (u.phone_secondary || '').toLowerCase();
     const email = (u.email || '').toLowerCase();
-    return fullName.includes(q) || phone.includes(q) || email.includes(q);
+    const company = (u.company_name || '').toLowerCase();
+    return (
+      fullName.includes(q) ||
+      phone.includes(q) ||
+      phoneSec.includes(q) ||
+      email.includes(q) ||
+      company.includes(q)
+    );
   });
 
   return (
@@ -498,10 +506,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 </span>
               </div>
 
-              <div className="text-xs space-y-0.5 text-slate-600 dark:text-slate-400">
+              <div className="text-xs space-y-1 text-slate-600 dark:text-slate-400">
+                <div className="grid grid-cols-2 gap-2 py-1.5 border-y border-slate-100 dark:border-slate-800 text-[11px]">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] font-semibold">🏪 Qabul qiluvchi:</span>
+                    <strong className="text-slate-800 dark:text-slate-200 block truncate">
+                      {ord.receiver ? `${ord.receiver.first_name} ${ord.receiver.last_name}` : 'Mijoz'}
+                    </strong>
+                    {ord.receiver?.company_name && (
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">🏢 {ord.receiver.company_name}</span>
+                    )}
+                    {ord.receiver?.phone_primary && (
+                      <span className="text-[10px] text-slate-400 block">{ord.receiver.phone_primary}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] font-semibold">🚚 Diller (Yetkazuvchi):</span>
+                    <strong className="text-slate-800 dark:text-slate-200 block truncate">
+                      {ord.supplier?.company_name || 'Ta\'minotchi'}
+                    </strong>
+                    {ord.supplier?.user && (
+                      <span className="text-[10px] text-slate-400 block truncate">
+                        {ord.supplier.user.first_name} ({ord.supplier.user.phone_primary})
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 <p>📍 Manzil: <span className="font-medium text-slate-900 dark:text-slate-200">{ord.delivery_address}</span></p>
                 <p>⏰ Vaqt: {ord.delivery_time_slot}</p>
-                <p className="font-bold text-slate-900 dark:text-slate-100">
+                <p className="font-bold text-slate-900 dark:text-slate-100 pt-0.5">
                   💰 Summa: {Number(ord.total_price).toLocaleString('uz-UZ')} so‘m
                 </p>
               </div>

@@ -55,6 +55,7 @@ export const updateProfileSchema = z.object({
   last_name: z.string().min(1).optional(),
   phone_primary: z.string().min(APP_DEFAULTS.PHONE_MIN_LENGTH).optional(),
   phone_secondary: z.string().nullable().optional(),
+  company_name: z.string().nullable().optional(),
   language: z.enum(SUPPORTED_LANGUAGES).optional(),
 });
 

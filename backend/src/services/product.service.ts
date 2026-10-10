@@ -15,7 +15,20 @@ export class ProductService {
    * Create a new product for authenticated supplier
    */
   public createProduct(userId: string, input: CreateProductInput) {
-    const supplier = db.findSupplierByUserId(userId);
+    let supplier = db.findSupplierByUserId(userId);
+    const user = db.findUserById(userId);
+    const isAdmin = user?.role === 'ADMIN';
+
+    if (!supplier && isAdmin) {
+      const allSups = db.getAllSuppliers();
+      supplier = allSups.length > 0 ? allSups[0] : db.createSupplier({
+        user_id: userId,
+        company_name: 'Bude Asosiy Logistika',
+        delivery_fee: 15000,
+        is_free_delivery: false,
+      });
+    }
+
     if (!supplier) {
       throw new ForbiddenError('Faqat ta\'minotchilar tovar qo\'shishi mumkin');
     }
@@ -43,13 +56,12 @@ export class ProductService {
    * Update existing product
    */
   public updateProduct(userId: string, productId: string, input: UpdateProductInput) {
-    const supplier = db.findSupplierByUserId(userId);
-    if (!supplier) {
-      throw new ForbiddenError('Ruxsat berilmagan');
-    }
+    let supplier = db.findSupplierByUserId(userId);
+    const user = db.findUserById(userId);
+    const isAdmin = user?.role === 'ADMIN';
 
     const existingProduct = db.findProductById(productId);
-    if (!existingProduct || existingProduct.supplier_id !== supplier.id) {
+    if (!existingProduct || (!isAdmin && existingProduct.supplier_id !== supplier?.id)) {
       throw new NotFoundError('Tovar topilmadi yoki sizga tegishli emas');
     }
 
@@ -68,7 +80,7 @@ export class ProductService {
     });
 
     if (updated) {
-      notifyProductUpdated(supplier.id, updated);
+      notifyProductUpdated(existingProduct.supplier_id, updated);
     }
 
     return {
@@ -81,13 +93,12 @@ export class ProductService {
    * Toggle product availability status
    */
   public toggleAvailability(userId: string, productId: string, explicitStatus?: boolean) {
-    const supplier = db.findSupplierByUserId(userId);
-    if (!supplier) {
-      throw new ForbiddenError('Ruxsat berilmagan');
-    }
+    let supplier = db.findSupplierByUserId(userId);
+    const user = db.findUserById(userId);
+    const isAdmin = user?.role === 'ADMIN';
 
     const product = db.findProductById(productId);
-    if (!product || product.supplier_id !== supplier.id) {
+    if (!product || (!isAdmin && product.supplier_id !== supplier?.id)) {
       throw new NotFoundError('Tovar topilmadi');
     }
 
@@ -95,7 +106,7 @@ export class ProductService {
     const updated = db.updateProduct(productId, { is_available: isAvailable });
 
     if (updated) {
-      notifyProductUpdated(supplier.id, updated);
+      notifyProductUpdated(product.supplier_id, updated);
     }
 
     return {
@@ -108,13 +119,12 @@ export class ProductService {
    * Delete product
    */
   public deleteProduct(userId: string, productId: string) {
-    const supplier = db.findSupplierByUserId(userId);
-    if (!supplier) {
-      throw new ForbiddenError('Ruxsat berilmagan');
-    }
+    let supplier = db.findSupplierByUserId(userId);
+    const user = db.findUserById(userId);
+    const isAdmin = user?.role === 'ADMIN';
 
     const product = db.findProductById(productId);
-    if (!product || product.supplier_id !== supplier.id) {
+    if (!product || (!isAdmin && product.supplier_id !== supplier?.id)) {
       throw new NotFoundError('Tovar topilmadi');
     }
 

@@ -87,8 +87,16 @@ export class AuthService {
       console.log(`👑 [Telegram] Foydalanuvchi ADMIN darajasiga ko‘tarildi: (Telegram ID: ${user.telegram_id})`);
     }
 
-    const supplier =
-      user.role === ROLES.SUPPLIER ? db.findSupplierByUserId(user.id) : undefined;
+    let supplier = db.findSupplierByUserId(user.id);
+    if (!supplier && user.role === 'ADMIN') {
+      const allSups = db.getAllSuppliers();
+      supplier = allSups.length > 0 ? allSups[0] : db.createSupplier({
+        user_id: user.id,
+        company_name: 'Bude Asosiy Logistika',
+        delivery_fee: 15000,
+        is_free_delivery: false,
+      });
+    }
     const token = generateToken({
       userId: user.id,
       telegramId: user.telegram_id,
@@ -372,7 +380,11 @@ export class AuthService {
       throw new NotFoundError('Foydalanuvchi topilmadi');
     }
 
-    const supplier = user.role === ROLES.SUPPLIER ? db.findSupplierByUserId(user.id) : undefined;
+    let supplier = db.findSupplierByUserId(user.id);
+    if (!supplier && user.role === 'ADMIN') {
+      const allSups = db.getAllSuppliers();
+      supplier = allSups.length > 0 ? allSups[0] : undefined;
+    }
     return { user, supplier };
   }
 
@@ -385,8 +397,16 @@ export class AuthService {
       ...(input.last_name ? { last_name: input.last_name } : {}),
       ...(input.phone_primary ? { phone_primary: input.phone_primary } : {}),
       ...(input.phone_secondary !== undefined ? { phone_secondary: input.phone_secondary } : {}),
+      ...(input.company_name !== undefined ? { company_name: input.company_name } : {}),
       ...(input.language ? { language: input.language } : {}),
     });
+
+    if (input.company_name) {
+      const existingSup = db.findSupplierByUserId(userId);
+      if (existingSup) {
+        db.updateSupplier(existingSup.id, { company_name: input.company_name });
+      }
+    }
 
     if (!updated) {
       throw new NotFoundError('Foydalanuvchi topilmadi');

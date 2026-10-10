@@ -6,16 +6,23 @@ import { changeLanguage } from '../../i18n';
 import { isDemoSession, api } from '../../api/client';
 import { 
   Moon, Sun, LogOut, Truck, User, 
-  X, Check, RotateCcw, Phone, Mail, ShieldCheck 
+  X, Check, RotateCcw, Phone, Mail, ShieldCheck, Building2 
 } from 'lucide-react';
 import { hapticImpact, hapticNotification, hapticSelection } from '../../utils/telegram';
 
 interface HeaderProps {
   onOpenAdmin?: () => void;
   isAdmin?: boolean;
+  adminViewMode?: 'ADMIN' | 'SUPPLIER' | 'RECEIVER';
+  onAdminViewModeChange?: (mode: 'ADMIN' | 'SUPPLIER' | 'RECEIVER') => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenAdmin, isAdmin }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  onOpenAdmin, 
+  isAdmin, 
+  adminViewMode, 
+  onAdminViewModeChange 
+}) => {
   const { t, i18n } = useTranslation();
   const { user, supplier, logout, updateUserProfile } = useAuth();
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -29,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin, isAdmin }) => {
   const [editLastName, setEditLastName] = useState<string>('');
   const [editPhonePrimary, setEditPhonePrimary] = useState<string>('');
   const [editPhoneSecondary, setEditPhoneSecondary] = useState<string>('');
+  const [editCompanyName, setEditCompanyName] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
 
@@ -55,6 +63,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin, isAdmin }) => {
       setEditLastName(user.last_name || '');
       setEditPhonePrimary(user.phone_primary || '');
       setEditPhoneSecondary(user.phone_secondary || '');
+      setEditCompanyName(user.company_name || supplier?.company_name || '');
       setProfileMessage(null);
     }
     setIsProfileOpen(true);
@@ -72,6 +81,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin, isAdmin }) => {
         last_name: editLastName.trim(),
         phone_primary: editPhonePrimary.trim(),
         phone_secondary: editPhoneSecondary.trim() || null,
+        company_name: editCompanyName.trim() || null,
       });
       setProfileMessage("Profil ma'lumotlari muvaffaqiyatli saqlandi!");
       setTimeout(() => setProfileMessage(null), 3000);
@@ -105,8 +115,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin, isAdmin }) => {
                 Bude Delivery
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
               </h1>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                {supplier?.company_name || (user?.role === 'RECEIVER' ? "B2B/B2C Katalog" : "Logistika Tizimi")}
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[170px]">
+                {supplier?.company_name || user?.company_name || (user?.role === 'RECEIVER' ? "B2B/B2C Katalog" : "Logistika Tizimi")}
               </p>
             </div>
           </div>
@@ -177,6 +187,60 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin, isAdmin }) => {
             )}
           </div>
         </div>
+
+        {/* Admin Mode Switcher Bar */}
+        {isAdmin && onAdminViewModeChange && (
+          <div className="bg-amber-500/10 dark:bg-amber-500/15 border-t border-amber-300/40 dark:border-amber-700/40 px-4 py-1.5 flex items-center justify-between text-xs max-w-md mx-auto">
+            <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
+              <span>👑</span>
+              <span>Ko‘rinish:</span>
+            </span>
+            <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 p-0.5 rounded-xl text-[11px] font-bold border border-amber-200/50 dark:border-amber-800/50">
+              <button
+                type="button"
+                onClick={() => {
+                  hapticImpact('light');
+                  onAdminViewModeChange('ADMIN');
+                }}
+                className={`px-2.5 py-1 rounded-lg transition ${
+                  adminViewMode === 'ADMIN'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-amber-600'
+                }`}
+              >
+                👑 Boshqaruv
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  hapticImpact('light');
+                  onAdminViewModeChange('SUPPLIER');
+                }}
+                className={`px-2.5 py-1 rounded-lg transition ${
+                  adminViewMode === 'SUPPLIER'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
+                }`}
+              >
+                🚚 Diller
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  hapticImpact('light');
+                  onAdminViewModeChange('RECEIVER');
+                }}
+                className={`px-2.5 py-1 rounded-lg transition ${
+                  adminViewMode === 'RECEIVER'
+                    ? 'bg-brand-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-brand-600'
+                }`}
+              >
+                🏪 Do‘kon
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* User Profile Modal */}
@@ -201,7 +265,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin, isAdmin }) => {
                     </h3>
                     <div className="flex items-center gap-1.5 text-[10px] text-white/80">
                       <ShieldCheck className="w-3 h-3" />
-                      <span>{user.role === 'SUPPLIER' ? "Ta'minotchi" : "Qabul qiluvchi"}</span>
+                      <span>
+                        {user.role === 'ADMIN'
+                          ? "👑 Bosh Administrator"
+                          : user.role === 'SUPPLIER'
+                          ? "🚚 Diller (Yetkazib beruvchi)"
+                          : "🏪 Qabul qiluvchi do‘kon"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -275,6 +345,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin, isAdmin }) => {
                     value={editPhoneSecondary}
                     onChange={(e) => setEditPhoneSecondary(e.target.value)}
                     placeholder="+998 90 000 00 00"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-hidden font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-brand-600" />
+                    Tashkilot / Do‘kon rasmiy nomi
+                  </label>
+                  <input
+                    type="text"
+                    value={editCompanyName}
+                    onChange={(e) => setEditCompanyName(e.target.value)}
+                    placeholder="Masalan: Fayz Savdo MCHJ"
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-hidden font-medium"
                   />
                 </div>

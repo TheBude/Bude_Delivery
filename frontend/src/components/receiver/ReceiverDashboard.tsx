@@ -41,7 +41,7 @@ export const ReceiverDashboard: React.FC = () => {
           }`}
         >
           <Store className="w-3.5 h-3.5" />
-          <span>Ta'minotchilar</span>
+          <span>Dillerlar (Yetkazuvchilar)</span>
         </button>
 
         <button

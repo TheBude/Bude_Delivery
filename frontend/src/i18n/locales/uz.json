@@ -2,10 +2,10 @@
   "app_name": "Bude Delivery",
   "tagline": "Tezkor B2B/B2C logistika va yetkazib berish tizimi",
   "roles": {
-    "supplier": "Ta'minotchi",
-    "receiver": "Qabul qiluvchi",
-    "supplier_desc": "Tovarlarni sotish, katalog yaratish va buyurtmalarni kuryerga biriktirish",
-    "receiver_desc": "Ta'minotchilardan mahsulotlarni tanlash va manzilga buyurtma berish"
+    "supplier": "Diller (Yetkazib beruvchi)",
+    "receiver": "Qabul qiluvchi do'kon",
+    "supplier_desc": "Tovarlarni ulgurji sotish, katalog yaratish va buyurtmalarni yetkazish",
+    "receiver_desc": "Dillerlardan mahsulotlarni tanlash va o'z do'koniga buyurtma berish"
   },
   "auth": {
     "login_title": "Bude Delivery ga xush kelibsiz",
@@ -45,12 +45,12 @@
     "demo_supplier_desc": "Tovarlar, mavjudlik tugmasi, kuryer biriktirish"
   },
   "receiver": {
-    "suppliers_title": "Faol Ta'minotchilar",
-    "suppliers_subtitle": "Eng sifatli tovarlar va ishonchli yetkazib beruvchilar",
-    "search_placeholder": "Ta'minotchi yoki mahsulot nomi...",
+    "suppliers_title": "Faol Dillerlar (Yetkazib beruvchilar)",
+    "suppliers_subtitle": "Eng sifatli tovarlar va ishonchli ulgurji dillerlar",
+    "search_placeholder": "Diller yoki mahsulot nomi...",
     "filter_all": "Barchasi",
     "filter_free_delivery": "Yetkazish bepul",
-    "no_suppliers": "Hech qanday ta'minotchi topilmadi",
+    "no_suppliers": "Hech qanday diller topilmadi",
     "delivery_fee": "Yetkazish: {{fee}} so'm",
     "free_delivery_badge": "Yetkazish bepul",
     "active_products": "{{count}} ta faol tovar",
@@ -79,7 +79,7 @@
     "no_orders_yet": "Hozircha buyurtmalar yo'q",
     "order_id": "Buyurtma #{{id}}",
     "date": "Sana",
-    "supplier": "Ta'minotchi",
+    "supplier": "Diller (Ta'minotchi)",
     "courier_info": "Kuryer va Transport",
     "vehicle_model": "Avtomobil rusumi",
     "plate_number": "Davlat raqami",
@@ -92,7 +92,7 @@
     "receipt_copied": "Nusxalandi"
   },
   "supplier": {
-    "dashboard_title": "Ta'minotchi Boshqaruvi",
+    "dashboard_title": "Diller Boshqaruv Paneli",
     "orders_tab": "Buyurtmalar",
     "products_tab": "Tovarlar",
     "settings_tab": "Yetkazish sozlamalari",
