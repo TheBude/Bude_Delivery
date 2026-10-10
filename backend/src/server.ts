@@ -16,7 +16,8 @@ setupSocketIO(server);
 
 // Security & Parsing Middlewares
 app.use(cors({ origin: config.corsOrigin }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Request logging in development
 if (config.isDevelopment) {

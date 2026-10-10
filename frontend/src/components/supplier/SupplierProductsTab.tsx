@@ -1,13 +1,57 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Plus, Edit2, Trash2, 
-  Package, X, Search 
+  Package, X, Search, Camera, RefreshCw 
 } from 'lucide-react';
 import { hapticImpact, hapticNotification, hapticSelection } from '../../utils/telegram';
+
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const maxWidth = 800;
+        const maxHeight = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(event.target?.result as string);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(compressedBase64);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
 
 const IMAGE_PRESETS = [
   { name: 'Olma', url: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&auto=format&fit=crop&q=60' },
@@ -43,6 +87,35 @@ export const SupplierProductsTab: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [imageUploading, setImageUploading] = useState<boolean>(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Iltimos, faqat rasm faylini tanlang (JPG, PNG, WEBP)');
+      return;
+    }
+
+    try {
+      setImageUploading(true);
+      hapticImpact('light');
+      const compressedDataUrl = await compressImage(file);
+      setImageUrl(compressedDataUrl);
+      hapticNotification('success');
+    } catch (err) {
+      console.error('Image compression error', err);
+      alert('Rasmni yuklashda xatolik yuz berdi');
+    } finally {
+      setImageUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const fetchProducts = async () => {
     if (!supplier?.id) return;
     try {
@@ -69,7 +142,7 @@ export const SupplierProductsTab: React.FC = () => {
     setDiscountPrice('');
     setIsAvailable(true);
     setQuantityOptional('');
-    setImageUrl(IMAGE_PRESETS[0].url);
+    setImageUrl('');
     setError(null);
     setIsModalOpen(true);
   };
@@ -520,32 +593,113 @@ export const SupplierProductsTab: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Image presets */}
-                <div>
-                  <label className="block text-slate-600 dark:text-slate-400 mb-1.5 font-medium">
-                    {t('supplier.image_url')} yoki shablon tanlang:
-                  </label>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {IMAGE_PRESETS.map((p) => (
-                      <button
-                        key={p.name}
-                        type="button"
-                        onClick={() => setImageUrl(p.url)}
-                        className={`w-12 h-12 rounded-lg overflow-hidden shrink-0 border-2 transition ${
-                          imageUrl === p.url ? 'border-brand-600 scale-105' : 'border-transparent'
-                        }`}
-                      >
-                        <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
-                      </button>
-                    ))}
+                {/* Product Image Section (Optional + Gallery Upload) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Mahsulot rasmi
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                      Ixtiyoriy
+                    </span>
                   </div>
+
+                  {/* Hidden file input for device/gallery selection */}
                   <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 mt-1"
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
                   />
+
+                  {imageUrl ? (
+                    /* Image Preview Card */
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 shrink-0 border border-slate-200 dark:border-slate-600 shadow-sm relative">
+                        <img
+                          src={imageUrl}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <span>✅ Rasm biriktirildi</span>
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={imageUploading}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 dark:bg-brand-950/40 px-2.5 py-1 rounded-lg transition"
+                          >
+                            🔄 Boshqasini tanlash
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              hapticImpact('light');
+                              setImageUrl('');
+                            }}
+                            className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-lg transition"
+                          >
+                            🗑️ O‘chirish
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Upload Button Area */
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        disabled={imageUploading}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full p-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/40 dark:hover:bg-brand-950/20 bg-slate-50/50 dark:bg-slate-800/40 transition flex flex-col items-center justify-center gap-2 cursor-pointer group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 flex items-center justify-center group-hover:scale-110 transition shadow-xs">
+                          {imageUploading ? (
+                            <RefreshCw className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Camera className="w-5 h-5" />
+                          )}
+                        </div>
+                        <div className="text-center">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                            {imageUploading ? 'Rasm qayta ishlanmoqda...' : '📷 Galeriyadan rasm yuklash'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 mt-0.5 block">
+                            Telefon galeriyasi yoki fayllardan istalgan rasmni tanlang
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Optional preset chips */}
+                      <div className="pt-1">
+                        <span className="text-[10px] text-slate-400 font-medium block mb-1">
+                          Yoki tayyor shablonlardan birini tanlang (ixtiyoriy):
+                        </span>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {IMAGE_PRESETS.map((p) => (
+                            <button
+                              key={p.name}
+                              type="button"
+                              onClick={() => {
+                                hapticImpact('light');
+                                setImageUrl(p.url);
+                              }}
+                              className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 hover:border-brand-500 hover:scale-105 transition"
+                              title={p.name}
+                            >
+                              <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 flex gap-2">
