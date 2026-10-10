@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { changeLanguage } from '../../i18n';
 import { 
   Truck, ShoppingBag, Phone, PhoneCall, User as UserIcon, 
   Building2, CheckCircle2, ArrowRight, ArrowLeft, Sparkles, AlertCircle 
 } from 'lucide-react';
 import { hapticImpact, hapticSelection, hapticNotification } from '../../utils/telegram';
+import { LanguageButton, LanguageModal } from '../common/LanguageModal';
 
 interface RegisterScreenProps {
   onSwitchToEmailAuth?: () => void;
@@ -37,6 +37,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
   const [isFreeDelivery, setIsFreeDelivery] = useState<boolean>(false);
 
   const [error, setError] = useState<string | null>(null);
+  const [isLangModalOpen, setIsLangModalOpen] = useState<boolean>(false);
 
   const handleRoleSelect = (selectedRole: 'SUPPLIER' | 'RECEIVER') => {
     hapticSelection();
@@ -157,25 +158,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
             </div>
           </div>
 
-          {/* Language Switcher */}
-          <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-1 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm text-[11px]">
-            {(['uz', 'ru', 'en'] as const).map((lang) => (
-              <button
-                key={lang}
-                onClick={() => {
-                  hapticSelection();
-                  changeLanguage(lang);
-                }}
-                className={`px-2 py-0.5 rounded-lg font-bold transition ${
-                  i18n.language === lang
-                    ? 'bg-brand-600 text-white shadow-sm'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-brand-600'
-                }`}
-              >
-                {lang.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          {/* Modern Language Button */}
+          <LanguageButton onClick={() => setIsLangModalOpen(true)} />
         </div>
 
         {/* Step Progress Bar */}
@@ -565,6 +549,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
       <p className="text-center text-[10px] text-slate-400 py-2">
         © Bude Delivery Platform • Ishonchli va xavfsiz yetkazib berish
       </p>
+
+      {/* Language Selection Modal */}
+      <LanguageModal
+        isOpen={isLangModalOpen}
+        onClose={() => setIsLangModalOpen(false)}
+      />
     </div>
   );
 };

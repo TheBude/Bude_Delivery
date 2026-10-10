@@ -152,5 +152,14 @@
     "success": "Success",
     "haptic_notice": "Telegram Haptic active",
     "sound_notice": "New order audio chime enabled"
+  },
+  "language": {
+    "title": "Select Language",
+    "subtitle": "App interface language",
+    "uz": "O'zbekcha",
+    "ru": "Русский",
+    "en": "English",
+    "change_btn": "Change Language",
+    "saved": "Language successfully saved!"
   }
 }

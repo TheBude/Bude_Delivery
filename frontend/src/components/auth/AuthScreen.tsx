@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { changeLanguage } from '../../i18n';
 import { 
   Truck, ShoppingBag, User as UserIcon, 
   CheckCircle2, ArrowRight, Mail, Lock, Eye, EyeOff, 
   AlertCircle, X, Sparkles 
 } from 'lucide-react';
 import { hapticImpact, hapticSelection } from '../../utils/telegram';
+import { LanguageButton, LanguageModal } from '../common/LanguageModal';
 
 // Google SVG 4-color Logo
 const GoogleIcon = () => (
@@ -69,6 +69,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
   const [googleInputName, setGoogleInputName] = useState<string>('Sardor Alimov');
 
   const [error, setError] = useState<string | null>(null);
+  const [isLangModalOpen, setIsLangModalOpen] = useState<boolean>(false);
 
   const handleTabSwitch = (tab: 'LOGIN' | 'REGISTER') => {
     hapticSelection();
@@ -219,24 +220,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
           </p>
         </motion.div>
 
-        {/* Language Switcher Bar */}
-        <div className="flex items-center justify-center gap-1.5 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-1 rounded-xl border border-slate-200/60 dark:border-slate-700/60 w-fit mx-auto shadow-xs">
-          {(['uz', 'ru', 'en'] as const).map((lang) => (
-            <button
-              key={lang}
-              onClick={() => {
-                hapticSelection();
-                changeLanguage(lang);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                i18n.language === lang
-                  ? 'bg-brand-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-brand-600'
-              }`}
-            >
-              {lang.toUpperCase()}
-            </button>
-          ))}
+        {/* Language Switcher Button */}
+        <div className="flex justify-center">
+          <LanguageButton onClick={() => setIsLangModalOpen(true)} />
         </div>
 
         {/* Main Card */}
@@ -821,6 +807,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Language Selection Modal */}
+      <LanguageModal
+        isOpen={isLangModalOpen}
+        onClose={() => setIsLangModalOpen(false)}
+      />
     </div>
   );
 };

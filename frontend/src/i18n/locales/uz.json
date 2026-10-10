@@ -152,5 +152,14 @@
     "success": "Muvaffaqiyatli",
     "haptic_notice": "Telegram Haptic faol",
     "sound_notice": "Yangi buyurtma signali yoqilgan"
+  },
+  "language": {
+    "title": "Tilni tanlang",
+    "subtitle": "Ilova interfeysi tili",
+    "uz": "O'zbekcha",
+    "ru": "Русский",
+    "en": "English",
+    "change_btn": "Tilni o'zgartirish",
+    "saved": "Til muvaffaqiyatli saqlandi!"
   }
 }

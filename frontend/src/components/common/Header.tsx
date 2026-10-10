@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { changeLanguage } from '../../i18n';
 import { isDemoSession, api } from '../../api/client';
 import { 
   Moon, Sun, LogOut, Truck, User, 
-  X, Check, RotateCcw, Phone, Mail, ShieldCheck, Building2 
+  X, Check, RotateCcw, Phone, Mail, ShieldCheck, Building2, Globe 
 } from 'lucide-react';
-import { hapticImpact, hapticNotification, hapticSelection } from '../../utils/telegram';
+import { hapticImpact, hapticNotification } from '../../utils/telegram';
+import { LanguageButton, LanguageModal } from './LanguageModal';
 
 interface HeaderProps {
   onOpenAdmin?: () => void;
@@ -39,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [editCompanyName, setEditCompanyName] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [isLangModalOpen, setIsLangModalOpen] = useState<boolean>(false);
 
   const toggleDarkMode = () => {
     hapticImpact('light');
@@ -49,11 +50,6 @@ export const Header: React.FC<HeaderProps> = ({
     } else {
       document.documentElement.classList.remove('dark');
     }
-  };
-
-  const handleLanguageChange = (lang: string) => {
-    hapticSelection();
-    changeLanguage(lang);
   };
 
   const openProfileModal = () => {
@@ -123,22 +119,8 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Actions */}
           <div className="flex items-center gap-1.5">
-            {/* Language Selector */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 text-xs font-semibold">
-              {(['uz', 'ru', 'en'] as const).map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => handleLanguageChange(lang)}
-                  className={`px-2 py-1 rounded-md transition-all text-[11px] ${
-                    i18n.language === lang
-                      ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  {lang.toUpperCase()}
-                </button>
-              ))}
-            </div>
+            {/* Modern Language Button */}
+            <LanguageButton onClick={() => setIsLangModalOpen(true)} />
 
             {/* Admin Dashboard Button */}
             {isAdmin && onOpenAdmin && (
@@ -363,6 +345,27 @@ export const Header: React.FC<HeaderProps> = ({
                   />
                 </div>
 
+                {/* Language Setting Row in Profile */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                    <Globe className="w-3 h-3 text-brand-600" />
+                    Ilova tili / Til sozlamasi
+                  </label>
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      <span className="text-base">{i18n.language === 'ru' ? '🇷🇺' : i18n.language === 'en' ? '🇬🇧' : '🇺🇿'}</span>
+                      <span>{i18n.language === 'ru' ? 'Русский язык' : i18n.language === 'en' ? 'English' : "O'zbekcha (Lotin)"}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsLangModalOpen(true)}
+                      className="px-2.5 py-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 hover:bg-brand-100 rounded-lg transition"
+                    >
+                      O‘zgartirish
+                    </button>
+                  </div>
+                </div>
+
                 {user.email && (
                   <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex items-center gap-2 text-slate-500">
                     <Mail className="w-3.5 h-3.5" />
@@ -396,6 +399,12 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Global Language Selection Modal */}
+      <LanguageModal
+        isOpen={isLangModalOpen}
+        onClose={() => setIsLangModalOpen(false)}
+      />
     </>
   );
 };

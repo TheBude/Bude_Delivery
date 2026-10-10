@@ -152,5 +152,14 @@
     "success": "Успешно",
     "haptic_notice": "Telegram Haptic активен",
     "sound_notice": "Звуковой сигнал новых заказов включен"
+  },
+  "language": {
+    "title": "Выбор языка",
+    "subtitle": "Язык интерфейса приложения",
+    "uz": "O'zbekcha",
+    "ru": "Русский",
+    "en": "English",
+    "change_btn": "Сменить язык",
+    "saved": "Язык успешно сохранен!"
   }
 }
