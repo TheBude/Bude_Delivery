@@ -9,6 +9,7 @@ import type {
   Product,
   Supplier,
   User,
+  Role,
 } from '../types';
 
 export const getToken = (): string | null => {
@@ -284,5 +285,30 @@ export const api = {
             body: JSON.stringify({ cancellation_reason: reason }),
           })
       ),
+  },
+
+  admin: {
+    getOverview: (): Promise<{
+      stats: {
+        totalUsers: number;
+        receiversCount: number;
+        suppliersCount: number;
+        totalOrders: number;
+        totalRevenue: number;
+      };
+      users: User[];
+      suppliers: Supplier[];
+      orders: Order[];
+    }> =>
+      dispatch(
+        () => demoStore.getAdminOverview() as any,
+        () => request('/admin/overview')
+      ),
+
+    updateUserRole: (id: string, role: Role): Promise<{ message: string; user: User }> =>
+      request(`/admin/users/${id}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }),
   },
 };

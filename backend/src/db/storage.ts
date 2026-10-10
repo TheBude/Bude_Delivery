@@ -730,6 +730,20 @@ export class DatabaseStore {
       supplier,
     };
   }
+
+  getAllUsers(): User[] {
+    return this.data.users.map((u) => {
+      const { password_hash, ...safeUser } = u as any;
+      return safeUser as User;
+    });
+  }
+
+  getAllOrders(): Order[] {
+    return this.data.orders
+      .slice()
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((o) => this.hydrateOrder(o));
+  }
 }
 
 export const db = new DatabaseStore();

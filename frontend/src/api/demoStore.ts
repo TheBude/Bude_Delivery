@@ -684,5 +684,26 @@ export const demoStore = {
 
     return { order: state.orders[idx] };
   },
+
+  getAdminOverview() {
+    const usersList = Object.values(state.users);
+    const receiversCount = usersList.filter((u) => u.role === 'RECEIVER').length;
+    const suppliersCount = usersList.filter((u) => u.role === 'SUPPLIER').length;
+    const totalOrders = state.orders.length;
+    const totalRevenue = state.orders.reduce((sum, o) => sum + (Number(o.total_price) || 0), 0);
+
+    return {
+      stats: {
+        totalUsers: usersList.length,
+        receiversCount,
+        suppliersCount,
+        totalOrders,
+        totalRevenue,
+      },
+      users: usersList,
+      suppliers: state.suppliers,
+      orders: state.orders,
+    };
+  },
 };
 

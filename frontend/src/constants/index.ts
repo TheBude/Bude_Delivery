@@ -15,6 +15,7 @@ export const APP_CONFIG = {
 export const ROLES = {
   SUPPLIER: 'SUPPLIER',
   RECEIVER: 'RECEIVER',
+  ADMIN: 'ADMIN',
 } as const satisfies Record<string, Role>;
 
 export const ORDER_STATUSES = {

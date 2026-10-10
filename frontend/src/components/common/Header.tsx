@@ -10,7 +10,12 @@ import {
 } from 'lucide-react';
 import { hapticImpact, hapticNotification, hapticSelection } from '../../utils/telegram';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenAdmin?: () => void;
+  isAdmin?: boolean;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenAdmin, isAdmin }) => {
   const { t, i18n } = useTranslation();
   const { user, supplier, logout, updateUserProfile } = useAuth();
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -124,6 +129,21 @@ export const Header: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {/* Admin Dashboard Button */}
+            {isAdmin && onOpenAdmin && (
+              <button
+                onClick={() => {
+                  hapticImpact('medium');
+                  onOpenAdmin();
+                }}
+                title="Admin Boshqaruv Paneli"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700/60 shadow-xs hover:scale-105 active:scale-95 transition-all"
+              >
+                <span>👑</span>
+                <span>Admin</span>
+              </button>
+            )}
 
             {/* Dark Mode */}
             <button

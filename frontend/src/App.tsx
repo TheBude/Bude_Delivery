@@ -5,10 +5,12 @@ import { Header } from './components/common/Header';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { ReceiverDashboard } from './components/receiver/ReceiverDashboard';
 import { SupplierDashboard } from './components/supplier/SupplierDashboard';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Truck } from 'lucide-react';
 
 export const MainContent: React.FC = () => {
   const { user, isLoading, isNewUser } = useAuth();
+  const [isAdminViewOpen, setIsAdminViewOpen] = React.useState<boolean>(false);
 
   if (isLoading) {
     return (
@@ -28,11 +30,19 @@ export const MainContent: React.FC = () => {
     return <AuthScreen />;
   }
 
+  const isAdmin = Boolean(user.email === 'sbunyod15@gmail.com' || user.role === 'ADMIN');
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col text-slate-900 dark:text-slate-100 font-sans">
-      <Header />
+      <Header onOpenAdmin={() => setIsAdminViewOpen(true)} isAdmin={isAdmin} />
       <main className="flex-1 max-w-md w-full mx-auto px-4 py-4">
-        {user.role === 'SUPPLIER' ? <SupplierDashboard /> : <ReceiverDashboard />}
+        {isAdminViewOpen ? (
+          <AdminDashboard onBack={() => setIsAdminViewOpen(false)} />
+        ) : user.role === 'SUPPLIER' ? (
+          <SupplierDashboard />
+        ) : (
+          <ReceiverDashboard />
+        )}
       </main>
     </div>
   );

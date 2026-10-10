@@ -1,4 +1,4 @@
-export type Role = 'SUPPLIER' | 'RECEIVER';
+export type Role = 'SUPPLIER' | 'RECEIVER' | 'ADMIN';
 
 export type OrderStatus =
   | 'PENDING'     // Kutilmoqda
