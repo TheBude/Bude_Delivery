@@ -1,12 +1,12 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
 import cors from 'cors';
 import { config } from './config';
 import { setupSocketIO } from './socket';
-import { authRouter } from './routes/authRoutes';
-import { supplierRouter } from './routes/supplierRoutes';
-import { productRouter } from './routes/productRoutes';
-import { orderRouter } from './routes/orderRoutes';
+import { apiRouter } from './routes';
+import { errorHandler } from './middleware/errorHandler';
+import { NotFoundError } from './errors/AppError';
+import { HTTP_STATUS } from './constants/http.constants';
 
 const app = express();
 const server = http.createServer(app);
@@ -14,43 +14,42 @@ const server = http.createServer(app);
 // Initialize Socket.io
 setupSocketIO(server);
 
-// Middleware
+// Security & Parsing Middlewares
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json());
 
 // Request logging in development
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
-});
+if (config.isDevelopment) {
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
+}
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
+app.get('/api/health', (_req: Request, res: Response) => {
+  res.status(HTTP_STATUS.OK).json({
     status: 'ok',
     service: 'Bude Delivery API',
     timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development',
+    env: config.nodeEnv,
   });
 });
 
-// Mount Routes
-app.use('/api/auth', authRouter);
-app.use('/api/suppliers', supplierRouter);
-app.use('/api/products', productRouter);
-app.use('/api/orders', orderRouter);
+// Mount Central API Router
+app.use('/api', apiRouter);
 
-// Error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('[Unhandled Error]', err);
-  res.status(500).json({
-    error: 'Ichki server xatoligi yuz berdi',
-    details: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
+// Handle 404 for undefined routes
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  next(new NotFoundError(`Marshrut topilmadi: ${req.method} ${req.originalUrl}`));
 });
 
+// Centralized Error Handling Middleware
+app.use(errorHandler);
+
+// Graceful server start
 server.listen(config.port, () => {
-  console.log(`🚀 Bude Delivery Backend Server is running on port ${config.port}`);
+  console.log(`🚀 Bude Delivery Backend Server is running on port ${config.port} (${config.nodeEnv})`);
   console.log(`📡 WebSocket ready on ws://localhost:${config.port}`);
   console.log(`🔗 API Base: http://localhost:${config.port}/api`);
 });

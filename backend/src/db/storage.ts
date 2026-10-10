@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { User, Supplier, Product, Order, OrderItem, Delivery, Role, OrderStatus } from '../types';
+import { ORDER_STATUSES } from '../constants/app.constants';
 import { 
   initPostgresTables, 
   syncUserToPostgres, 
@@ -504,7 +505,7 @@ export class DatabaseStore {
     const newOrder: Order = {
       ...orderData,
       id: orderId,
-      status: 'PENDING',
+      status: ORDER_STATUSES.PENDING,
       total_price: finalTotal,
       created_at: now,
       updated_at: now,
@@ -551,7 +552,7 @@ export class DatabaseStore {
     }
 
     // Also update order status to PREPARING when delivery info is set
-    this.updateOrderStatus(orderId, 'PREPARING');
+    this.updateOrderStatus(orderId, ORDER_STATUSES.PREPARING);
     this.persist();
 
     syncDeliveryToPostgres(newDelivery);

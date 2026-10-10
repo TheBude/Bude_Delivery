@@ -1,17 +1,26 @@
 import { demoStore } from './demoStore';
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
+import { APP_CONFIG, STORAGE_KEYS } from '../constants';
+import type {
+  AuthCheckResponse,
+  AuthSuccessResponse,
+  CourierInfo,
+  CreateOrderPayload,
+  Order,
+  Product,
+  Supplier,
+  User,
+} from '../types';
 
 export const getToken = (): string | null => {
-  return localStorage.getItem('bude_token');
+  return localStorage.getItem(STORAGE_KEYS.TOKEN);
 };
 
-export const setToken = (token: string) => {
-  localStorage.setItem('bude_token', token);
+export const setToken = (token: string): void => {
+  localStorage.setItem(STORAGE_KEYS.TOKEN, token);
 };
 
-export const removeToken = () => {
-  localStorage.removeItem('bude_token');
+export const removeToken = (): void => {
+  localStorage.removeItem(STORAGE_KEYS.TOKEN);
 };
 
 export const isDemoSession = (): boolean => {
@@ -30,7 +39,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const response = await fetch(`${APP_CONFIG.API_BASE}${endpoint}`, {
     ...options,
     headers,
   });
@@ -44,199 +53,236 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   return data as T;
 }
 
+/**
+ * Dispatch helper: Executes demoStore logic if demo session is active,
+ * otherwise performs real HTTP request.
+ */
+function dispatch<T>(demoFn: () => T | Promise<T>, httpFn: () => Promise<T>): Promise<T> {
+  if (isDemoSession()) {
+    return Promise.resolve(demoFn());
+  }
+  return httpFn();
+}
+
 export const api = {
   auth: {
-    demoLogin: (role: 'SUPPLIER' | 'RECEIVER') => {
+    demoLogin: (role: 'SUPPLIER' | 'RECEIVER'): Promise<AuthSuccessResponse> => {
       const res = demoStore.loginRole(role);
       setToken(res.token);
-      return Promise.resolve(res);
+      return Promise.resolve(res as unknown as AuthSuccessResponse);
     },
-    resetDemo: () => {
+
+    resetDemo: (): Promise<void> => {
       demoStore.resetToDefault();
       return Promise.resolve();
     },
-    validateTelegram: (initData: string) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.getMe());
-      }
-      return request<any>('/auth/telegram-validate', {
-        method: 'POST',
-        body: JSON.stringify({ initData }),
-      });
-    },
-    register: (userData: any) =>
-      request<any>('/auth/register', {
+
+    validateTelegram: (initData: string): Promise<AuthCheckResponse> =>
+      dispatch(
+        () => demoStore.getMe() as unknown as AuthCheckResponse,
+        () =>
+          request<AuthCheckResponse>('/auth/telegram-validate', {
+            method: 'POST',
+            body: JSON.stringify({ initData }),
+          })
+      ),
+
+    register: (userData: any): Promise<AuthSuccessResponse> =>
+      request<AuthSuccessResponse>('/auth/register', {
         method: 'POST',
         body: JSON.stringify(userData),
       }),
-    registerEmail: (data: any) =>
-      request<any>('/auth/register-email', {
+
+    registerEmail: (data: any): Promise<AuthSuccessResponse> =>
+      request<AuthSuccessResponse>('/auth/register-email', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    loginEmail: (data: { email: string; password: string }) =>
-      request<any>('/auth/login-email', {
+
+    loginEmail: (data: { email: string; password: string }): Promise<AuthSuccessResponse> =>
+      request<AuthSuccessResponse>('/auth/login-email', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    googleAuth: (data: any) =>
-      request<any>('/auth/google', {
+
+    googleAuth: (data: any): Promise<AuthCheckResponse> =>
+      request<AuthCheckResponse>('/auth/google', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    devLogin: (role: 'SUPPLIER' | 'RECEIVER') => {
-      // In presentation mode, dev login routes to offline demo store directly
+
+    devLogin: (role: 'SUPPLIER' | 'RECEIVER'): Promise<AuthSuccessResponse> => {
       return api.auth.demoLogin(role);
     },
-    getMe: () => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.getMe());
-      }
-      return request<any>('/auth/me');
-    },
-    updateProfile: (profile: any) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.updateProfile(profile));
-      }
-      return request<any>('/auth/profile', {
-        method: 'PUT',
-        body: JSON.stringify(profile),
-      });
-    },
+
+    getMe: (): Promise<{ user: User; supplier?: Supplier }> =>
+      dispatch(
+        () => demoStore.getMe() as unknown as { user: User; supplier?: Supplier },
+        () => request<{ user: User; supplier?: Supplier }>('/auth/me')
+      ),
+
+    updateProfile: (profile: Partial<User>): Promise<{ message: string; user: User }> =>
+      dispatch(
+        () => demoStore.updateProfile(profile as any) as unknown as { message: string; user: User },
+        () =>
+          request<{ message: string; user: User }>('/auth/profile', {
+            method: 'PUT',
+            body: JSON.stringify(profile),
+          })
+      ),
   },
+
   suppliers: {
-    getAll: (params?: { q?: string; free_delivery?: boolean }) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.getSuppliers(params));
-      }
-      const search = new URLSearchParams();
-      if (params?.q) search.set('q', params.q);
-      if (params?.free_delivery) search.set('free_delivery', 'true');
-      const qs = search.toString();
-      return request<any[]>(`/suppliers${qs ? `?${qs}` : ''}`);
-    },
-    getById: (id: string) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.getSupplierById(id));
-      }
-      return request<any>(`/suppliers/${id}`);
-    },
-    updateSettings: (settings: { company_name?: string; delivery_fee?: number; is_free_delivery?: boolean }) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.updateSupplierSettings(settings));
-      }
-      return request<any>('/suppliers/settings', {
-        method: 'PUT',
-        body: JSON.stringify(settings),
-      });
-    },
+    getAll: (params?: { q?: string; free_delivery?: boolean }): Promise<Supplier[]> =>
+      dispatch(
+        () => demoStore.getSuppliers(params) as unknown as Supplier[],
+        () => {
+          const search = new URLSearchParams();
+          if (params?.q) search.set('q', params.q);
+          if (params?.free_delivery) search.set('free_delivery', 'true');
+          const qs = search.toString();
+          return request<Supplier[]>(`/suppliers${qs ? `?${qs}` : ''}`);
+        }
+      ),
+
+    getById: (id: string): Promise<Supplier & { user?: User; products?: Product[] }> =>
+      dispatch(
+        () => demoStore.getSupplierById(id) as unknown as Supplier & { user?: User; products?: Product[] },
+        () => request<Supplier & { user?: User; products?: Product[] }>(`/suppliers/${id}`)
+      ),
+
+    updateSettings: (settings: {
+      company_name?: string;
+      delivery_fee?: number;
+      is_free_delivery?: boolean;
+    }): Promise<{ message: string; supplier: Supplier }> =>
+      dispatch(
+        () => demoStore.updateSupplierSettings(settings) as unknown as { message: string; supplier: Supplier },
+        () =>
+          request<{ message: string; supplier: Supplier }>('/suppliers/settings', {
+            method: 'PUT',
+            body: JSON.stringify(settings),
+          })
+      ),
   },
+
   products: {
-    getBySupplier: (supplierId: string, all = false) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.getProductsBySupplier(supplierId, all));
-      }
-      return request<any[]>(`/products/supplier/${supplierId}${all ? '?all=true' : ''}`);
-    },
-    create: (product: any) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.createProduct(product));
-      }
-      return request<any>('/products', {
-        method: 'POST',
-        body: JSON.stringify(product),
-      });
-    },
-    update: (id: string, product: any) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.updateProduct(id, product));
-      }
-      return request<any>(`/products/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(product),
-      });
-    },
-    toggleAvailability: (id: string, is_available?: boolean) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.toggleProductAvailability(id, is_available));
-      }
-      return request<any>(`/products/${id}/availability`, {
-        method: 'PATCH',
-        body: JSON.stringify({ is_available }),
-      });
-    },
-    delete: (id: string) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.deleteProduct(id));
-      }
-      return request<any>(`/products/${id}`, {
-        method: 'DELETE',
-      });
-    },
+    getBySupplier: (supplierId: string, all = false): Promise<Product[]> =>
+      dispatch(
+        () => demoStore.getProductsBySupplier(supplierId, all) as unknown as Product[],
+        () => request<Product[]>(`/products/supplier/${supplierId}${all ? '?all=true' : ''}`)
+      ),
+
+    create: (product: Partial<Product>): Promise<{ message: string; product: Product }> =>
+      dispatch(
+        () => demoStore.createProduct(product) as unknown as { message: string; product: Product },
+        () =>
+          request<{ message: string; product: Product }>('/products', {
+            method: 'POST',
+            body: JSON.stringify(product),
+          })
+      ),
+
+    update: (id: string, product: Partial<Product>): Promise<{ message: string; product: Product }> =>
+      dispatch(
+        () => demoStore.updateProduct(id, product) as unknown as { message: string; product: Product },
+        () =>
+          request<{ message: string; product: Product }>(`/products/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(product),
+          })
+      ),
+
+    toggleAvailability: (
+      id: string,
+      is_available?: boolean
+    ): Promise<{ message: string; product: Product }> =>
+      dispatch(
+        () => demoStore.toggleProductAvailability(id, is_available) as unknown as { message: string; product: Product },
+        () =>
+          request<{ message: string; product: Product }>(`/products/${id}/availability`, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_available }),
+          })
+      ),
+
+    delete: (id: string): Promise<{ message: string }> =>
+      dispatch(
+        () => demoStore.deleteProduct(id) as unknown as { message: string },
+        () =>
+          request<{ message: string }>(`/products/${id}`, {
+            method: 'DELETE',
+          })
+      ),
   },
+
   orders: {
-    create: (orderData: any) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.createOrder(orderData));
-      }
-      return request<any>('/orders', {
-        method: 'POST',
-        body: JSON.stringify(orderData),
-      });
-    },
-    getReceiverOrders: () => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.getReceiverOrders());
-      }
-      return request<any[]>('/orders/receiver');
-    },
-    getSupplierOrders: () => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.getSupplierOrders());
-      }
-      return request<any[]>('/orders/supplier');
-    },
-    getById: (id: string) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.getOrderById(id));
-      }
-      return request<any>(`/orders/${id}`);
-    },
-    accept: (id: string, courier: { vehicle_model: string; vehicle_plate_number: string; driver_name: string; driver_phone: string }) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.acceptOrder(id, courier));
-      }
-      return request<any>(`/orders/${id}/accept`, {
-        method: 'POST',
-        body: JSON.stringify(courier),
-      });
-    },
-    updateStatus: (id: string, status: string) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.updateOrderStatus(id, status));
-      }
-      return request<any>(`/orders/${id}/status`, {
-        method: 'POST',
-        body: JSON.stringify({ status }),
-      });
-    },
-    reject: (id: string, rejection_reason: string) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.rejectOrder(id, rejection_reason));
-      }
-      return request<any>(`/orders/${id}/reject`, {
-        method: 'POST',
-        body: JSON.stringify({ rejection_reason }),
-      });
-    },
-    cancel: (id: string, reason?: string) => {
-      if (isDemoSession()) {
-        return Promise.resolve(demoStore.cancelOrder(id, reason));
-      }
-      return request<any>(`/orders/${id}/cancel`, {
-        method: 'POST',
-        body: JSON.stringify({ cancellation_reason: reason }),
-      });
-    },
+    create: (orderData: CreateOrderPayload): Promise<{ message: string; order: Order }> =>
+      dispatch(
+        () => demoStore.createOrder(orderData) as unknown as { message: string; order: Order },
+        () =>
+          request<{ message: string; order: Order }>('/orders', {
+            method: 'POST',
+            body: JSON.stringify(orderData),
+          })
+      ),
+
+    getReceiverOrders: (): Promise<Order[]> =>
+      dispatch(
+        () => demoStore.getReceiverOrders() as unknown as Order[],
+        () => request<Order[]>('/orders/receiver')
+      ),
+
+    getSupplierOrders: (): Promise<Order[]> =>
+      dispatch(
+        () => demoStore.getSupplierOrders() as unknown as Order[],
+        () => request<Order[]>('/orders/supplier')
+      ),
+
+    getById: (id: string): Promise<Order> =>
+      dispatch(
+        () => demoStore.getOrderById(id) as unknown as Order,
+        () => request<Order>(`/orders/${id}`)
+      ),
+
+    accept: (id: string, courier: CourierInfo): Promise<{ message: string; order: Order }> =>
+      dispatch(
+        () => demoStore.acceptOrder(id, courier) as unknown as { message: string; order: Order },
+        () =>
+          request<{ message: string; order: Order }>(`/orders/${id}/accept`, {
+            method: 'POST',
+            body: JSON.stringify(courier),
+          })
+      ),
+
+    updateStatus: (id: string, status: string): Promise<{ message: string; order: Order }> =>
+      dispatch(
+        () => demoStore.updateOrderStatus(id, status) as unknown as { message: string; order: Order },
+        () =>
+          request<{ message: string; order: Order }>(`/orders/${id}/status`, {
+            method: 'POST',
+            body: JSON.stringify({ status }),
+          })
+      ),
+
+    reject: (id: string, rejection_reason: string): Promise<{ message: string; order: Order }> =>
+      dispatch(
+        () => demoStore.rejectOrder(id, rejection_reason) as unknown as { message: string; order: Order },
+        () =>
+          request<{ message: string; order: Order }>(`/orders/${id}/reject`, {
+            method: 'POST',
+            body: JSON.stringify({ rejection_reason }),
+          })
+      ),
+
+    cancel: (id: string, reason?: string): Promise<{ message: string; order: Order }> =>
+      dispatch(
+        () => demoStore.cancelOrder(id, reason) as unknown as { message: string; order: Order },
+        () =>
+          request<{ message: string; order: Order }>(`/orders/${id}/cancel`, {
+            method: 'POST',
+            body: JSON.stringify({ cancellation_reason: reason }),
+          })
+      ),
   },
 };

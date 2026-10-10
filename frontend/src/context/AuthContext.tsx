@@ -3,27 +3,8 @@ import { api, setToken, removeToken, getToken } from '../api/client';
 import { getTelegramInitData, getTelegramUser, initTelegramApp, hapticNotification } from '../utils/telegram';
 import { initSocket, disconnectSocket } from '../api/socket';
 
-export interface User {
-  id: string;
-  telegram_id?: number | null;
-  email?: string | null;
-  avatar_url?: string | null;
-  role: 'SUPPLIER' | 'RECEIVER';
-  first_name: string;
-  last_name: string;
-  phone_primary: string;
-  phone_secondary?: string | null;
-  language: string;
-}
-
-export interface Supplier {
-  id: string;
-  user_id: string;
-  company_name: string;
-  delivery_fee: number;
-  is_free_delivery: boolean;
-  user?: User;
-}
+import type { User, Supplier } from '../types';
+export type { User, Supplier };
 
 interface AuthContextType {
   user: User | null;
@@ -73,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (res.isNewUser) {
               setIsNewUser(true);
               setTelegramUser(res.telegramUser || tgUser);
-            } else {
+            } else if (res.user && res.token) {
               setToken(res.token);
               setTokenState(res.token);
               setUser(res.user);
@@ -158,13 +139,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         return { isNewUser: true, googleUser: res.googleUser };
       }
-      setToken(res.token);
-      setTokenState(res.token);
-      setUser(res.user);
-      setSupplier(res.supplier || null);
-      setIsNewUser(false);
-      initSocket(res.user.id, res.user.role);
-      hapticNotification('success');
+      if (res.user && res.token) {
+        setToken(res.token);
+        setTokenState(res.token);
+        setUser(res.user);
+        setSupplier(res.supplier || null);
+        setIsNewUser(false);
+        initSocket(res.user.id, res.user.role);
+        hapticNotification('success');
+      }
       return { isNewUser: false };
     } catch (err: any) {
       hapticNotification('error');
