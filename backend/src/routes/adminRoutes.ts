@@ -3,6 +3,7 @@ import { authMiddleware, AuthenticatedRequest } from '../middleware/authMiddlewa
 import { db } from '../db/storage';
 import { ForbiddenError, NotFoundError } from '../errors/AppError';
 import { Role } from '../types';
+import { telegramBotService } from '../services/telegramBot.service';
 
 export const adminRouter = Router();
 
@@ -125,5 +126,36 @@ adminRouter.post('/users/:id/reset-password', async (req: AuthenticatedRequest, 
   res.json({
     message: 'Parol muvaffaqiyatli yangilandi',
     user: updatedUser,
+  });
+});
+
+/**
+ * POST /api/admin/broadcast-update
+ * Broadcast Web App update notification to Telegram users
+ */
+adminRouter.post('/broadcast-update', async (req: AuthenticatedRequest, res: Response) => {
+  ensureAdmin(req);
+
+  const { message, webAppUrl, targetChatId, botToken } = req.body as {
+    message?: string;
+    webAppUrl?: string;
+    targetChatId?: string | number;
+    botToken?: string;
+  };
+
+  const result = await telegramBotService.broadcastAppUpdate({
+    message,
+    webAppUrl,
+    targetChatId,
+    botToken,
+  });
+
+  if (!result.success && result.error) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  res.json({
+    message: 'Telegram xabarnomasi muvaffaqiyatli jo‘natildi',
+    ...result,
   });
 });

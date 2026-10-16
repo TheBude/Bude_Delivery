@@ -732,5 +732,20 @@ export const demoStore = {
     }
     throw new Error('Foydalanuvchi topilmadi');
   },
+
+  broadcastUpdate(_payload: any) {
+    return Promise.resolve({
+      message: 'Telegram xabarnomasi muvaffaqiyatli jo‘natildi (Demo simulyatsiyasi)',
+      success: true,
+      total: 3,
+      sent: 3,
+      failed: 0,
+      recipients: [
+        { chatId: '8012592174', status: 'sent' },
+        { chatId: '1001', status: 'sent' },
+        { chatId: '2001', status: 'sent' },
+      ],
+    });
+  },
 };
 

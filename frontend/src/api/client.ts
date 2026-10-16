@@ -399,5 +399,27 @@ export const api = {
             body: JSON.stringify({ newPassword }),
           })
       ),
+
+    broadcastUpdate: (payload: {
+      message?: string;
+      webAppUrl?: string;
+      targetChatId?: string | number;
+      botToken?: string;
+    }): Promise<{
+      message: string;
+      success: boolean;
+      total: number;
+      sent: number;
+      failed: number;
+      recipients: Array<{ chatId: number | string; status: 'sent' | 'failed'; error?: string }>;
+    }> =>
+      dispatch(
+        () => demoStore.broadcastUpdate(payload) as any,
+        () =>
+          request('/admin/broadcast-update', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          })
+      ),
   },
 };

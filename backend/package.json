@@ -8,7 +8,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "notify:update": "tsx src/scripts/broadcastUpdate.ts",
+    "bot": "tsx src/bot.ts"
   },
   "keywords": [],
   "author": "",
