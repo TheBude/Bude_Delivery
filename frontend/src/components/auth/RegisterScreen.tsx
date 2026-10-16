@@ -56,12 +56,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
     if (step === 2) {
       if (!firstName.trim()) {
         hapticNotification('error');
-        setError('Iltimos, ismingizni kiriting');
+        setError(t('registration.error_empty_name'));
         return;
       }
       if (!lastName.trim()) {
         hapticNotification('error');
-        setError('Iltimos, familiyangizni kiriting');
+        setError(t('registration.error_empty_name'));
         return;
       }
       hapticImpact('light');
@@ -73,7 +73,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
       const cleanPhone = phonePrimary.replace(/\D/g, '');
       if (!phonePrimary.trim() || cleanPhone.length < 9) {
         hapticNotification('error');
-        setError('1-raqamni to‘liq kiriting (kamida 9 ta raqam, masalan: +998 90 123 45 67)');
+        setError(t('registration.error_empty_phone'));
         return;
       }
       hapticImpact('light');
@@ -97,7 +97,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
 
     if (!companyName.trim()) {
       hapticNotification('error');
-      setError('Tashkilot yoki do‘kon rasmiy nomi kiritilishi shart');
+      setError(t('registration.error_empty_company'));
       return;
     }
 
@@ -115,27 +115,30 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
         is_free_delivery: isFreeDelivery,
       });
     } catch (err: any) {
-      setError(err.message || 'Ro‘yxatdan o‘tishda xatolik yuz berdi');
+      setError(err.message || t('common.error'));
     }
   };
 
   // Step information
   const stepTitles: Record<number, { title: string; subtitle: string }> = {
     1: {
-      title: 'Faoliyat turini tanlang',
-      subtitle: 'Siz Dillermisiz yoki Qabul qiluvchi do‘kon?',
+      title: t('registration.step1_title', 'Faoliyat turini tanlang'),
+      subtitle: t('registration.step1_subtitle', 'Siz Yetkazib beruvchimisiz yoki Qabul qiluvchi do‘kon?'),
     },
     2: {
-      title: 'Ism va familiyangiz',
-      subtitle: 'Shaxsiy ma‘lumotlaringizni kiriting',
+      title: t('registration.step2_title', 'Ism va familiyangiz'),
+      subtitle: t('registration.step2_subtitle', 'Shaxsiy ma‘lumotlaringizni kiriting'),
     },
     3: {
-      title: 'Bog‘lanish telefonlari',
-      subtitle: '1-raqam majburiy, 2-raqam ixtiyoriy',
+      title: t('registration.step3_title', 'Bog‘lanish telefonlari'),
+      subtitle: t('registration.step3_subtitle', '1-raqam majburiy, 2-raqam ixtiyoriy'),
     },
     4: {
-      title: 'Tashkilot rasmiy nomi',
-      subtitle: role === 'SUPPLIER' ? 'Dillerlik korxonangiz rasmiy nomi' : 'Do‘koningiz yoki savdo nuqtangiz nomi',
+      title: t('registration.step4_title', 'Tashkilot rasmiy nomi'),
+      subtitle:
+        role === 'SUPPLIER'
+          ? t('registration.step4_subtitle_supplier', 'Yetkazib beruvchi korxonangiz rasmiy nomi')
+          : t('registration.step4_subtitle_receiver', 'Do‘koningiz yoki savdo nuqtangiz nomi'),
     },
   };
 
@@ -153,7 +156,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                 {t('app_name')}
               </h1>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Ro‘yxatdan o‘tish
+                {t('registration.title', 'Ro‘yxatdan o‘tish')}
               </p>
             </div>
           </div>
@@ -165,9 +168,9 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
         {/* Step Progress Bar */}
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-            <span>Qadam {step} / 4</span>
+            <span>{t('registration.step_progress', { current: step, total: 4 })}</span>
             <span className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold">
-              {Math.round((step / 4) * 100)}% yakunlandi
+              {t('registration.completed', { percent: Math.round((step / 4) * 100) })}
             </span>
           </div>
 
@@ -181,10 +184,10 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
           </div>
 
           <div className="grid grid-cols-4 gap-1.5 pt-1 text-[10px] text-center font-medium">
-            <span className={step >= 1 ? 'text-brand-600 font-bold' : 'text-slate-400'}>1. Rol</span>
-            <span className={step >= 2 ? 'text-brand-600 font-bold' : 'text-slate-400'}>2. Ism</span>
-            <span className={step >= 3 ? 'text-brand-600 font-bold' : 'text-slate-400'}>3. Telefon</span>
-            <span className={step >= 4 ? 'text-brand-600 font-bold' : 'text-slate-400'}>4. Tashkilot</span>
+            <span className={step >= 1 ? 'text-brand-600 font-bold' : 'text-slate-400'}>{t('registration.steps.role', '1. Rol')}</span>
+            <span className={step >= 2 ? 'text-brand-600 font-bold' : 'text-slate-400'}>{t('registration.steps.name', '2. Ism')}</span>
+            <span className={step >= 3 ? 'text-brand-600 font-bold' : 'text-slate-400'}>{t('registration.steps.phone', '3. Telefon')}</span>
+            <span className={step >= 4 ? 'text-brand-600 font-bold' : 'text-slate-400'}>{t('registration.steps.company', '4. Tashkilot')}</span>
           </div>
         </div>
 
@@ -242,17 +245,17 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
-                          🚚 Diller (Yetkazib beruvchi)
+                          🚚 {t('roles.supplier', 'Yetkazib beruvchi')}
                         </h3>
                         {role === 'SUPPLIER' && (
                           <CheckCircle2 className="w-5 h-5 text-brand-600 shrink-0" />
                         )}
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                        Mahsulotlarni ulgurji narxda sotish, katalog yaratish va buyurtmalarni do‘konlarga yetkazib berish.
+                        {t('roles.supplier_desc')}
                       </p>
                       <span className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                        Ulgurji Ta‘minotchi
+                        {t('registration.supplier_badge', 'Ulgurji Yetkazib beruvchi')}
                       </span>
                     </div>
                   </button>
@@ -276,17 +279,17 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
-                          🏪 Qabul qiluvchi do‘kon (Do‘kon / Haridor)
+                          🏪 {t('roles.receiver', 'Qabul qiluvchi do‘kon')}
                         </h3>
                         {role === 'RECEIVER' && (
                           <CheckCircle2 className="w-5 h-5 text-brand-600 shrink-0" />
                         )}
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                        Do‘koningiz yoki savdo nuqtangiz uchun dillerlardan tovar tanlash va manzilga buyurtma berish.
+                        {t('roles.receiver_desc')}
                       </p>
                       <span className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                        Chakana Savdo Do‘koni
+                        {t('registration.receiver_badge', 'Chakana Savdo Do‘koni')}
                       </span>
                     </div>
                   </button>
@@ -305,7 +308,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                 >
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Ismingiz *
+                      {t('auth.first_name', 'Ismingiz')} *
                     </label>
                     <div className="relative">
                       <UserIcon className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
@@ -315,7 +318,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                         autoFocus
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Masalan: Sardor"
+                        placeholder={t('auth.first_name_placeholder', 'Masalan: Sardor')}
                         className="w-full pl-10 pr-3 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
@@ -323,14 +326,14 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Familiyangiz *
+                      {t('auth.last_name', 'Familiyangiz')} *
                     </label>
                     <input
                       type="text"
                       required
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Masalan: Alimov"
+                      placeholder={t('auth.last_name_placeholder', 'Masalan: Alimov')}
                       className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
@@ -338,7 +341,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                   {telegramUser?.id && (
                     <p className="text-[11px] text-slate-400 flex items-center gap-1 pt-1">
                       <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      Telegram hisobingizdan avtomatik to‘ldirildi
+                      {t('registration.telegram_autofill', 'Telegram hisobingizdan avtomatik to‘ldirildi')}
                     </p>
                   )}
                 </motion.div>
@@ -357,9 +360,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                        1-raqam (Asosiy telefon) *
+                        {t('registration.phone_primary_label', '1-raqam (Asosiy telefon) *')}
                       </label>
-                      <span className="text-[10px] text-rose-500 font-semibold">Majburiy</span>
+                      <span className="text-[10px] text-rose-500 font-semibold">
+                        {t('registration.required_badge', 'Majburiy')}
+                      </span>
                     </div>
                     <div className="relative">
                       <Phone className="absolute left-3.5 top-3 w-4 h-4 text-brand-600" />
@@ -374,16 +379,18 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">
-                      Buyurtmalar va asosiy bildirishnomalar ushbu raqamga bog‘lanadi
+                      {t('registration.phone_primary_desc', 'Buyurtmalar va asosiy bildirishnomalar ushbu raqamga bog‘lanadi')}
                     </p>
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                        2-raqam (Qo‘shimcha telefon)
+                        {t('registration.phone_secondary_label', '2-raqam (Qo‘shimcha telefon)')}
                       </label>
-                      <span className="text-[10px] text-slate-400 font-medium">Ixtiyoriy</span>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {t('registration.optional_badge', 'Ixtiyoriy')}
+                      </span>
                     </div>
                     <div className="relative">
                       <PhoneCall className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
@@ -396,7 +403,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">
-                      1-raqamingiz o‘chiq bo‘lganda yoki aloqa bo‘lmaganda zaxira aloqa uchun
+                      {t('registration.phone_secondary_desc', '1-raqamingiz o‘chiq bo‘lganda zaxira aloqa uchun')}
                     </p>
                   </div>
                 </motion.div>
@@ -415,8 +422,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                       {role === 'SUPPLIER'
-                        ? 'Dillerlik korxonasi rasmiy nomi *'
-                        : 'Do‘kon yoki Savdo nuqtasi rasmiy nomi *'}
+                        ? t('registration.company_supplier_label', 'Yetkazib beruvchi korxonasi rasmiy nomi *')
+                        : t('registration.company_receiver_label', 'Do‘kon yoki Savdo nuqtasi rasmiy nomi *')}
                     </label>
                     <div className="relative">
                       <Building2 className="absolute left-3.5 top-3 w-4 h-4 text-brand-600" />
@@ -428,16 +435,16 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                         onChange={(e) => setCompanyName(e.target.value)}
                         placeholder={
                           role === 'SUPPLIER'
-                            ? 'Masalan: Buxoro Agro Savdo MCHJ'
-                            : 'Masalan: Fayz Oziq-ovqat Do‘koni'
+                            ? t('registration.company_supplier_placeholder', 'Masalan: Buxoro Agro Savdo MCHJ')
+                            : t('registration.company_receiver_placeholder', 'Masalan: Fayz Oziq-ovqat Do‘koni')
                         }
                         className="w-full pl-10 pr-3 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">
                       {role === 'SUPPLIER'
-                        ? 'Buyurtmachilar tovarlarni aynan shu diller nomi ostida ko‘rishadi'
-                        : 'Dillerlar buyurtmalarni sizning ushbu do‘koningiz nomiga jo‘natishadi'}
+                        ? t('registration.company_supplier_hint', 'Buyurtmachilar tovarlarni aynan shu diller nomi ostida ko‘rishadi')
+                        : t('registration.company_receiver_hint', 'Yetkazib beruvchilar buyurtmalarni sizning ushbu do‘koningiz nomiga jo‘natishadi')}
                     </p>
                   </div>
 
@@ -446,7 +453,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                     <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                          Standart yetkazish to‘lovi
+                          {t('registration.delivery_fee_label', 'Standart yetkazish to‘lovi')}
                         </label>
                         <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-emerald-600">
                           <input
@@ -455,7 +462,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                             onChange={(e) => setIsFreeDelivery(e.target.checked)}
                             className="w-4 h-4 rounded text-brand-600 border-slate-300"
                           />
-                          <span>Tekin yetkazish</span>
+                          <span>{t('registration.free_delivery_toggle', 'Bepul yetkazib berish')}</span>
                         </label>
                       </div>
 
@@ -467,7 +474,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                             onChange={(e) => setDeliveryFee(Number(e.target.value))}
                             className="flex-1 px-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
                           />
-                          <span className="text-xs text-slate-500 font-medium">so‘m</span>
+                          <span className="text-xs text-slate-500 font-medium">{t('common.sum', 'so‘m')}</span>
                         </div>
                       )}
                     </div>
@@ -476,10 +483,10 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                   <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-2xl border border-amber-200 dark:border-amber-800/50 text-[11px] text-amber-800 dark:text-amber-200 space-y-1">
                     <p className="font-bold flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5" />
-                      Barcha ma‘lumotlar to‘liq tayyor!
+                      {t('registration.ready_title', 'Barcha ma‘lumotlar to‘liq tayyor!')}
                     </p>
                     <p className="opacity-90">
-                      "Yakunlash" tugmasini bosib darhol tizimdan foydalanishni boshlashingiz mumkin.
+                      {t('registration.ready_desc', '"Yakunlash" tugmasini bosib darhol tizimdan foydalanishni boshlashingiz mumkin.')}
                     </p>
                   </div>
                 </motion.div>
@@ -496,7 +503,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                 className="px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Orqaga</span>
+                <span>{t('registration.prev_step', 'Orqaga')}</span>
               </button>
             )}
 
@@ -506,7 +513,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                 onClick={goToNextStep}
                 className="flex-1 py-3 px-4 rounded-2xl bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg shadow-brand-500/25 transition-all"
               >
-                <span>Davom etish</span>
+                <span>{t('registration.next_step', 'Davom etish')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
@@ -519,11 +526,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
                 {isLoading ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Yuklanmoqda...
+                    {t('common.loading', 'Yuklanmoqda...')}
                   </span>
                 ) : (
                   <>
-                    <span>Ro‘yxatdan o‘tishni yakunlash</span>
+                    <span>{t('registration.finish_btn', 'Ro‘yxatdan o‘tishni yakunlash')}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -540,14 +547,17 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToEmailA
               onClick={onSwitchToEmailAuth}
               className="text-xs font-semibold text-slate-500 hover:text-brand-600 transition"
             >
-              Allaqachon hisobingiz bormi? <span className="text-brand-600 font-bold underline">Email orqali kirish</span>
+              {t('auth.have_account_prompt', 'Allaqachon hisobingiz bormi?')}{' '}
+              <span className="text-brand-600 font-bold underline">
+                {t('registration.email_login_btn', 'Email orqali kirish')}
+              </span>
             </button>
           </div>
         )}
       </div>
 
       <p className="text-center text-[10px] text-slate-400 py-2">
-        © Bude Delivery Platform • Ishonchli va xavfsiz yetkazib berish
+        {t('registration.copyright', '© Bude Delivery Platform • Ishonchli va xavfsiz yetkazib berish')}
       </p>
 
       {/* Language Selection Modal */}

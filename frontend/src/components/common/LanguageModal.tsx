@@ -165,7 +165,7 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({ isOpen, onClose })
                           <span>{lang.nativeTitle}</span>
                           {isSelected && (
                             <span className="text-[9px] font-extrabold bg-brand-600 text-white px-1.5 py-0.2 rounded-md">
-                              FAOL
+                              {t('language.active_badge', 'FAOL')}
                             </span>
                           )}
                         </h4>
@@ -191,7 +191,7 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({ isOpen, onClose })
 
             <div className="pt-2 text-center text-[10px] text-slate-400 flex items-center justify-center gap-1">
               <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>Tanlangan til avtomatik xotirada saqlanadi</span>
+              <span>{t('language.auto_saved_hint', 'Tanlangan til avtomatik xotirada saqlanadi')}</span>
             </div>
           </motion.div>
         </div>

@@ -79,10 +79,10 @@ export const Header: React.FC<HeaderProps> = ({
         phone_secondary: editPhoneSecondary.trim() || null,
         company_name: editCompanyName.trim() || null,
       });
-      setProfileMessage("Profil ma'lumotlari muvaffaqiyatli saqlandi!");
+      setProfileMessage(t('profile.save_success'));
       setTimeout(() => setProfileMessage(null), 3000);
     } catch (err: any) {
-      alert(err.message || "Saqlashda xatolik yuz berdi");
+      alert(err.message || t('profile.save_error'));
     } finally {
       setIsSaving(false);
     }
@@ -90,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleResetDemoData = async () => {
     hapticImpact('heavy');
-    if (confirm("Haqiqatan ham barcha test ma'lumotlarini boshlang'ich holatga qaytarmoqchimisiz?")) {
+    if (confirm(t('profile.reset_demo_confirm'))) {
       await api.auth.resetDemo();
       hapticNotification('success');
       window.location.reload();
@@ -175,7 +175,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="bg-amber-500/10 dark:bg-amber-500/15 border-t border-amber-300/40 dark:border-amber-700/40 px-4 py-1.5 flex items-center justify-between text-xs max-w-md mx-auto">
             <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
               <span>👑</span>
-              <span>Ko‘rinish:</span>
+              <span>{t('admin.view_mode', 'Ko‘rinish:')}</span>
             </span>
             <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 p-0.5 rounded-xl text-[11px] font-bold border border-amber-200/50 dark:border-amber-800/50">
               <button
@@ -190,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 dark:text-slate-300 hover:text-amber-600'
                 }`}
               >
-                👑 Boshqaruv
+                👑 {t('admin.tab_admin', 'Boshqaruv')}
               </button>
               <button
                 type="button"
@@ -204,7 +204,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
                 }`}
               >
-                🚚 Diller
+                🚚 {t('admin.tab_supplier', 'Ta‘minotchi')}
               </button>
               <button
                 type="button"
@@ -218,7 +218,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 dark:text-slate-300 hover:text-brand-600'
                 }`}
               >
-                🏪 Do‘kon
+                🏪 {t('admin.tab_receiver', 'Do‘kon')}
               </button>
             </div>
           </div>
@@ -249,10 +249,10 @@ export const Header: React.FC<HeaderProps> = ({
                       <ShieldCheck className="w-3 h-3" />
                       <span>
                         {user.role === 'ADMIN'
-                          ? "👑 Bosh Administrator"
+                          ? `👑 ${t('profile.role_admin', 'Bosh Administrator')}`
                           : user.role === 'SUPPLIER'
-                          ? "🚚 Diller (Yetkazib beruvchi)"
-                          : "🏪 Qabul qiluvchi do‘kon"}
+                          ? `🚚 ${t('profile.role_supplier', 'Yetkazib beruvchi (Diler)')}`
+                          : `🏪 ${t('profile.role_receiver', 'Qabul qiluvchi do‘kon')}`}
                       </span>
                     </div>
                   </div>
@@ -278,7 +278,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
                     <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                      Ism
+                      {t('auth.first_name', 'Ism')}
                     </label>
                     <input
                       type="text"
@@ -291,7 +291,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                   <div className="space-y-1">
                     <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                      Familiya
+                      {t('auth.last_name', 'Familiya')}
                     </label>
                     <input
                       type="text"
@@ -306,7 +306,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                     <Phone className="w-3 h-3 text-brand-600" />
-                    Asosiy telefon raqam
+                    {t('auth.phone_primary', 'Asosiy telefon raqami')}
                   </label>
                   <input
                     type="text"
@@ -320,7 +320,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                     <Phone className="w-3 h-3 text-slate-400" />
-                    Qo'shimcha telefon (ixtiyoriy)
+                    {t('auth.phone_secondary', 'Qo‘shimcha telefon raqami (ixtiyoriy)')}
                   </label>
                   <input
                     type="text"
@@ -334,7 +334,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                     <Building2 className="w-3 h-3 text-brand-600" />
-                    Tashkilot / Do‘kon rasmiy nomi
+                    {t('auth.company_name', 'Kompaniya yoki Do‘kon nomi')}
                   </label>
                   <input
                     type="text"
@@ -349,19 +349,19 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                     <Globe className="w-3 h-3 text-brand-600" />
-                    Ilova tili / Til sozlamasi
+                    {t('language.subtitle', 'Ilova interfeysi tili')}
                   </label>
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                     <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <span className="text-base">{i18n.language === 'ru' ? '🇷🇺' : i18n.language === 'en' ? '🇬🇧' : '🇺🇿'}</span>
-                      <span>{i18n.language === 'ru' ? 'Русский язык' : i18n.language === 'en' ? 'English' : "O'zbekcha (Lotin)"}</span>
+                      <span>{i18n.language === 'ru' ? 'Русский язык' : i18n.language === 'en' ? 'English' : "O‘zbekcha"}</span>
                     </span>
                     <button
                       type="button"
                       onClick={() => setIsLangModalOpen(true)}
                       className="px-2.5 py-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 hover:bg-brand-100 rounded-lg transition"
                     >
-                      O‘zgartirish
+                      {t('language.change_btn', 'O‘zgartirish')}
                     </button>
                   </div>
                 </div>
@@ -380,7 +380,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-brand-600 hover:bg-brand-500 text-white shadow-md shadow-brand-500/25 active:scale-[0.98] transition flex items-center justify-center gap-1.5"
                 >
                   <Check className="w-3.5 h-3.5" />
-                  <span>{isSaving ? "Saqlanmoqda..." : "Profilni saqlash"}</span>
+                  <span>{isSaving ? t('common.saving', 'Saqlanmoqda...') : t('common.save', 'Saqlash')}</span>
                 </button>
 
                 {/* Demo Data Reset Button */}

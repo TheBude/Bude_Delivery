@@ -87,7 +87,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
     setError(null);
 
     if (!email.trim() || !password) {
-      setError('Email va parolni kiriting');
+      setError(t('auth.error_empty_credentials', 'Email va parolni kiriting'));
       return;
     }
 
@@ -97,7 +97,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
         password,
       });
     } catch (err: any) {
-      setError(err.message || 'Kirishda xatolik yuz berdi');
+      setError(err.message || t('auth.error_login_failed', 'Kirishda xatolik yuz berdi'));
     }
   };
 
@@ -107,23 +107,23 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
     setError(null);
 
     if (!firstName.trim() || !lastName.trim()) {
-      setError('Ism va Familiyangizni kiriting');
+      setError(t('registration.error_empty_name', 'Ism va familiyani to‘liq kiriting'));
       return;
     }
     if (!email.trim() || !email.includes('@')) {
-      setError('To\'g\'ri email manzilini kiriting');
+      setError(t('auth.error_invalid_email', 'To‘g‘ri email manzilini kiriting'));
       return;
     }
     if (password.length < 6) {
-      setError('Parol kamida 6 ta belgidan iborat bo\'lishi shart');
+      setError(t('auth.error_password_length', 'Parol kamida 6 ta belgidan iborat bo‘lishi shart'));
       return;
     }
     if (!phonePrimary.trim() || phonePrimary.replace(/\D/g, '').length < 9) {
-      setError('Asosiy telefon raqamini to\'liq kiriting (+998...)');
+      setError(t('registration.error_empty_phone', 'Telefon raqamingizni to‘liq kiriting'));
       return;
     }
     if (role === 'SUPPLIER' && !companyName.trim()) {
-      setError('Kompaniya yoki Do\'kon nomi kiritilishi shart');
+      setError(t('registration.error_empty_company', 'Tashkilot yoki do‘kon rasmiy nomi kiritilishi shart'));
       return;
     }
 
@@ -142,7 +142,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
         is_free_delivery: isFreeDelivery,
       });
     } catch (err: any) {
-      setError(err.message || 'Ro\'yxatdan o\'tishda xatolik yuz berdi');
+      setError(err.message || t('auth.error_register_failed', 'Ro‘yxatdan o‘tishda xatolik yuz berdi'));
     }
   };
 
@@ -178,7 +178,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
         });
       }
     } catch (err: any) {
-      setError(err.message || 'Google orqali kirishda xatolik');
+      setError(err.message || t('auth.error_google_failed', 'Google orqali kirishda xatolik'));
     }
   };
 
@@ -196,7 +196,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
       });
       setPendingGoogleUser(null);
     } catch (err: any) {
-      setError(err.message || 'Google ro\'yxatdan o\'tishda xatolik');
+      setError(err.message || t('auth.error_google_failed', 'Google ro‘yxatdan o‘tishda xatolik'));
     }
   };
 
@@ -344,7 +344,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
                 disabled={isLoading}
                 className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-brand-600 to-teal-600 hover:from-brand-500 hover:to-teal-500 shadow-lg shadow-brand-500/25 active:scale-[0.98] transition flex items-center justify-center gap-2"
               >
-                <span>{isLoading ? 'Yuklanmoqda...' : t('auth.login_btn')}</span>
+                <span>{isLoading ? t('common.loading', 'Yuklanmoqda...') : t('auth.login_btn')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -576,7 +576,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
                 disabled={isLoading}
                 className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-brand-600 to-teal-600 hover:from-brand-500 hover:to-teal-500 shadow-lg shadow-brand-500/25 active:scale-[0.98] transition flex items-center justify-center gap-2"
               >
-                <span>{isLoading ? 'Ro\'yxatdan o\'tilmoqda...' : t('auth.register_tab')}</span>
+                <span>{isLoading ? t('registration.submitting', 'Ro‘yxatdan o‘tilmoqda...') : t('auth.register_tab')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -666,7 +666,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
                 <div className="flex items-center gap-2">
                   <GoogleIcon />
                   <span className="font-bold text-sm text-slate-900 dark:text-white">
-                    Google hisobi orqali kirish
+                    {t('auth.google_login_title', 'Google hisobi orqali kirish')}
                   </span>
                 </div>
                 <button
@@ -680,7 +680,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-slate-500 mb-1 font-medium">Google Email:</label>
+                  <label className="block text-slate-500 mb-1 font-medium">{t('auth.email', 'Email')}:</label>
                   <input
                     type="email"
                     value={googleInputEmail}
@@ -691,7 +691,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1 font-medium">Ism va Familiya:</label>
+                  <label className="block text-slate-500 mb-1 font-medium">{t('auth.first_name', 'Ism')} va {t('auth.last_name', 'Familiya')}:</label>
                   <input
                     type="text"
                     value={googleInputName}
@@ -707,7 +707,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
                     onClick={() => setIsGooglePromptOpen(false)}
                     className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 font-semibold"
                   >
-                    Bekor qilish
+                    {t('common.cancel', 'Bekor qilish')}
                   </button>
                   <button
                     type="button"
@@ -715,7 +715,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
                     className="flex-1 py-2 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/25"
                   >
                     <GoogleIcon />
-                    <span>Davom etish</span>
+                    <span>{t('registration.next_step', 'Davom etish')}</span>
                   </button>
                 </div>
               </div>
@@ -755,7 +755,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
                         : 'border-slate-200 text-slate-600'
                     }`}
                   >
-                    🛒 Qabul qiluvchi
+                    🛒 {t('roles.receiver', 'Qabul qiluvchi')}
                   </button>
                   <button
                     type="button"
@@ -766,12 +766,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
                         : 'border-slate-200 text-slate-600'
                     }`}
                   >
-                    📦 Ta'minotchi
+                    📦 {t('roles.supplier', 'Yetkazib beruvchi')}
                   </button>
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1 font-medium">Telefon raqam:</label>
+                  <label className="block text-slate-500 mb-1 font-medium">{t('auth.phone_primary', 'Telefon raqam')}:</label>
                   <input
                     type="tel"
                     required
@@ -784,13 +784,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
 
                 {googleRole === 'SUPPLIER' && (
                   <div>
-                    <label className="block text-slate-500 mb-1 font-medium">Do'kon / Kompaniya nomi:</label>
+                    <label className="block text-slate-500 mb-1 font-medium">{t('auth.company_name', 'Do‘kon / Kompaniya nomi')}:</label>
                     <input
                       type="text"
                       required
                       value={googleCompanyName}
                       onChange={(e) => setGoogleCompanyName(e.target.value)}
-                      placeholder="Masalan: Fresh Market"
+                      placeholder={t('auth.company_placeholder', 'Masalan: Fresh Market')}
                       className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
                     />
                   </div>
@@ -800,7 +800,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSwitchToRegister }) =>
                   type="submit"
                   className="w-full py-2.5 rounded-xl font-bold bg-brand-600 hover:bg-brand-500 text-white shadow-md shadow-brand-500/25 mt-2"
                 >
-                  Tasdiqlash va Kirish
+                  {t('auth.confirm_and_enter', 'Tasdiqlash va Kirish')}
                 </button>
               </form>
             </motion.div>

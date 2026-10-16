@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Users, ShoppingBag, Truck, RefreshCw, ArrowLeft, 
   Search, DollarSign, Calendar, Phone, Key, Trash2, Eye, EyeOff, ShieldCheck, X,
@@ -14,6 +15,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'users' | 'suppliers' | 'orders' | 'broadcast'>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -312,7 +314,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               : 'text-slate-600 dark:text-slate-400'
           }`}
         >
-          👥 Foydalanuvchilar ({data.users.length})
+          👥 {t('admin.users', 'Foydalanuvchilar')} ({data.users.length})
         </button>
         <button
           onClick={() => {
@@ -325,7 +327,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               : 'text-slate-600 dark:text-slate-400'
           }`}
         >
-          🚚 Do‘konlar ({data.suppliers.length})
+          🚚 {t('admin.suppliers', 'Do‘konlar')} ({data.suppliers.length})
         </button>
         <button
           onClick={() => {
@@ -338,7 +340,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               : 'text-slate-600 dark:text-slate-400'
           }`}
         >
-          📦 Buyurtmalar ({data.orders.length})
+          📦 {t('admin.orders', 'Buyurtmalar')} ({data.orders.length})
         </button>
         <button
           onClick={() => {
@@ -351,7 +353,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               : 'text-slate-600 dark:text-slate-400'
           }`}
         >
-          📢 Xabarnoma
+          📢 {t('admin.broadcast', 'Xabarnoma')}
         </button>
       </div>
 
