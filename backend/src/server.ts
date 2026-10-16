@@ -55,6 +55,11 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
+// Root route redirects to Telegram WebApp frontend
+app.get('/', (_req: Request, res: Response) => {
+  res.redirect(config.webAppUrl);
+});
+
 // Mount Central API Router
 app.use('/api', apiRouter);
 

@@ -18,5 +18,5 @@ export const config = {
   corsOrigin: process.env.CORS_ORIGIN || '*',
   databaseUrl: process.env.DATABASE_URL || '',
   defaultDeliveryFee: parseInt(process.env.DEFAULT_DELIVERY_FEE || String(APP_DEFAULTS.DELIVERY_FEE), 10),
-  webAppUrl: process.env.WEB_APP_URL || 'https://bude-delivery.onrender.com',
+  webAppUrl: process.env.WEB_APP_URL || 'https://bude-delivery.vercel.app',
 } as const;
