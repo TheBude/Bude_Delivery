@@ -4,15 +4,15 @@ import L from 'leaflet';
 import { Navigation, MapPin } from 'lucide-react';
 import { hapticImpact } from '../../utils/telegram';
 
-// Fix Leaflet standard marker icon URL issue in React/Vite
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+// Robust SVG Marker that works completely offline and across all devices
+const defaultIcon = L.divIcon({
+  className: 'bude-delivery-map-pin',
+  html: `<div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#0284c7;color:white;box-shadow:0 6px 16px rgba(2,132,199,0.5);border:2.5px solid white;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+  </div>`,
+  iconSize: [34, 34],
+  iconAnchor: [17, 34],
+  popupAnchor: [0, -34],
 });
 
 interface LocationPickerProps {

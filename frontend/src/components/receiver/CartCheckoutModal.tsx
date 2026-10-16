@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useCart } from '../../context/CartContext';
 import { api } from '../../api/client';
-import { LocationPicker } from '../common/LocationPicker';
 import { ArrowLeft, Clock, FileText, ShoppingBag, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { hapticImpact, hapticNotification, hapticSelection, bindTelegramBackButton } from '../../utils/telegram';
+
+const LocationPicker = lazy(() =>
+  import('../common/LocationPicker').then((m) => ({ default: m.LocationPicker }))
+);
 
 interface CartCheckoutModalProps {
   onClose: () => void;
@@ -170,12 +173,21 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
 
         {/* 2. Interactive Map & Location */}
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-          <LocationPicker
-            lat={lat}
-            lng={lng}
-            address={address}
-            onChange={handleLocationChange}
-          />
+          <Suspense
+            fallback={
+              <div className="h-44 w-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 gap-2">
+                <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs font-medium">Interaktiv xarita yuklanmoqda...</span>
+              </div>
+            }
+          >
+            <LocationPicker
+              lat={lat}
+              lng={lng}
+              address={address}
+              onChange={handleLocationChange}
+            />
+          </Suspense>
         </div>
 
         {/* 3. Delivery Time Slot */}

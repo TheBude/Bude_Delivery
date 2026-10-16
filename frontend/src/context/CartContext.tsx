@@ -36,7 +36,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [deliveryFee, setDeliveryFee] = useState<number>(0);
   const [isFreeDelivery, setIsFreeDelivery] = useState<boolean>(false);
 
-  const addItem = (product: any, supplierId: string, fee = 0, isFree = false) => {
+  const addItem = React.useCallback((product: any, supplierId: string, fee = 0, isFree = false) => {
     hapticImpact('light');
 
     // If adding from a different supplier, confirm or clear old cart
@@ -64,9 +64,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return [...prev, { product, quantity: 1 }];
     });
-  };
+  }, [activeSupplierId, items.length]);
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = React.useCallback((productId: string, quantity: number) => {
     hapticSelection();
     if (quantity <= 0) {
       removeItem(productId);
@@ -75,9 +75,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems((prev) =>
       prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i))
     );
-  };
+  }, []);
 
-  const removeItem = (productId: string) => {
+  const removeItem = React.useCallback((productId: string) => {
     hapticImpact('medium');
     setItems((prev) => {
       const filtered = prev.filter((i) => i.product.id !== productId);
@@ -86,12 +86,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return filtered;
     });
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = React.useCallback(() => {
     setItems([]);
     setActiveSupplierId(null);
-  };
+  }, []);
 
   const subtotal = useMemo(() => {
     return items.reduce((sum, item) => {
@@ -112,25 +112,36 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return items.reduce((sum, item) => sum + item.quantity, 0);
   }, [items]);
 
-  return (
-    <CartContext.Provider
-      value={{
-        items,
-        activeSupplierId,
-        deliveryFee,
-        isFreeDelivery,
-        addItem,
-        updateQuantity,
-        removeItem,
-        clearCart,
-        subtotal,
-        total,
-        itemCount,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+  const value = useMemo(
+    () => ({
+      items,
+      activeSupplierId,
+      deliveryFee,
+      isFreeDelivery,
+      addItem,
+      updateQuantity,
+      removeItem,
+      clearCart,
+      subtotal,
+      total,
+      itemCount,
+    }),
+    [
+      items,
+      activeSupplierId,
+      deliveryFee,
+      isFreeDelivery,
+      addItem,
+      updateQuantity,
+      removeItem,
+      clearCart,
+      subtotal,
+      total,
+      itemCount,
+    ]
   );
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
 
 export const useCart = () => {

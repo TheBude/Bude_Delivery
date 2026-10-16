@@ -9,6 +9,7 @@ export class SupplierController {
       const freeDelivery = req.query.free_delivery === 'true';
 
       const results = supplierService.getAllSuppliers(q, freeDelivery);
+      res.setHeader('Cache-Control', 'public, max-age=10, stale-while-revalidate=30');
       res.json(results);
     } catch (err) {
       next(err);
@@ -19,6 +20,7 @@ export class SupplierController {
     try {
       const id = req.params.id as string;
       const supplier = supplierService.getSupplierById(id);
+      res.setHeader('Cache-Control', 'public, max-age=10, stale-while-revalidate=30');
       res.json(supplier);
     } catch (err) {
       next(err);

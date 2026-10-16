@@ -9,6 +9,7 @@ export class ProductController {
       const supplierId = req.params.supplierId as string;
       const onlyAvailable = req.query.all !== 'true';
       const products = productService.getProductsBySupplier(supplierId, onlyAvailable);
+      res.setHeader('Cache-Control', 'public, max-age=10, stale-while-revalidate=30');
       res.json(products);
     } catch (err) {
       next(err);

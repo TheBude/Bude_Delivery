@@ -55,6 +55,38 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 /**
+ * Client-Side In-Memory Response Cache with TTL (Time-To-Live)
+ * Provides 0ms instant loading when revisiting catalogs/suppliers on mobile
+ */
+const apiCache = new Map<string, { data: any; expiry: number }>();
+
+export function getCachedData<T>(key: string): T | null {
+  const entry = apiCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiry) {
+    apiCache.delete(key);
+    return null;
+  }
+  return entry.data as T;
+}
+
+export function setCachedData<T>(key: string, data: T, ttlMs = 25000): void {
+  apiCache.set(key, { data, expiry: Date.now() + ttlMs });
+}
+
+export function clearApiCache(prefix?: string): void {
+  if (!prefix) {
+    apiCache.clear();
+    return;
+  }
+  for (const k of Array.from(apiCache.keys())) {
+    if (k.startsWith(prefix)) {
+      apiCache.delete(k);
+    }
+  }
+}
+
+/**
  * Dispatch helper: Executes demoStore logic if demo session is active,
  * otherwise performs real HTTP request.
  */
@@ -137,19 +169,31 @@ export const api = {
     getAll: (params?: { q?: string; free_delivery?: boolean }): Promise<Supplier[]> =>
       dispatch(
         () => demoStore.getSuppliers(params) as unknown as Supplier[],
-        () => {
+        async () => {
           const search = new URLSearchParams();
           if (params?.q) search.set('q', params.q);
           if (params?.free_delivery) search.set('free_delivery', 'true');
           const qs = search.toString();
-          return request<Supplier[]>(`/suppliers${qs ? `?${qs}` : ''}`);
+          const cacheKey = `suppliers:all:${qs}`;
+          const cached = getCachedData<Supplier[]>(cacheKey);
+          if (cached) return cached;
+          const result = await request<Supplier[]>(`/suppliers${qs ? `?${qs}` : ''}`);
+          setCachedData(cacheKey, result, 25000);
+          return result;
         }
       ),
 
     getById: (id: string): Promise<Supplier & { user?: User; products?: Product[] }> =>
       dispatch(
         () => demoStore.getSupplierById(id) as unknown as Supplier & { user?: User; products?: Product[] },
-        () => request<Supplier & { user?: User; products?: Product[] }>(`/suppliers/${id}`)
+        async () => {
+          const cacheKey = `suppliers:${id}`;
+          const cached = getCachedData<Supplier & { user?: User; products?: Product[] }>(cacheKey);
+          if (cached) return cached;
+          const result = await request<Supplier & { user?: User; products?: Product[] }>(`/suppliers/${id}`);
+          setCachedData(cacheKey, result, 25000);
+          return result;
+        }
       ),
 
     updateSettings: (settings: {
@@ -159,11 +203,14 @@ export const api = {
     }): Promise<{ message: string; supplier: Supplier }> =>
       dispatch(
         () => demoStore.updateSupplierSettings(settings) as unknown as { message: string; supplier: Supplier },
-        () =>
-          request<{ message: string; supplier: Supplier }>('/suppliers/settings', {
+        async () => {
+          const res = await request<{ message: string; supplier: Supplier }>('/suppliers/settings', {
             method: 'PUT',
             body: JSON.stringify(settings),
-          })
+          });
+          clearApiCache('suppliers');
+          return res;
+        }
       ),
   },
 
@@ -171,27 +218,40 @@ export const api = {
     getBySupplier: (supplierId: string, all = false): Promise<Product[]> =>
       dispatch(
         () => demoStore.getProductsBySupplier(supplierId, all) as unknown as Product[],
-        () => request<Product[]>(`/products/supplier/${supplierId}${all ? '?all=true' : ''}`)
+        async () => {
+          const cacheKey = `products:${supplierId}:${all}`;
+          const cached = getCachedData<Product[]>(cacheKey);
+          if (cached) return cached;
+          const result = await request<Product[]>(`/products/supplier/${supplierId}${all ? '?all=true' : ''}`);
+          setCachedData(cacheKey, result, 25000);
+          return result;
+        }
       ),
 
     create: (product: Partial<Product>): Promise<{ message: string; product: Product }> =>
       dispatch(
         () => demoStore.createProduct(product) as unknown as { message: string; product: Product },
-        () =>
-          request<{ message: string; product: Product }>('/products', {
+        async () => {
+          const res = await request<{ message: string; product: Product }>('/products', {
             method: 'POST',
             body: JSON.stringify(product),
-          })
+          });
+          clearApiCache('products');
+          return res;
+        }
       ),
 
     update: (id: string, product: Partial<Product>): Promise<{ message: string; product: Product }> =>
       dispatch(
         () => demoStore.updateProduct(id, product) as unknown as { message: string; product: Product },
-        () =>
-          request<{ message: string; product: Product }>(`/products/${id}`, {
+        async () => {
+          const res = await request<{ message: string; product: Product }>(`/products/${id}`, {
             method: 'PUT',
             body: JSON.stringify(product),
-          })
+          });
+          clearApiCache('products');
+          return res;
+        }
       ),
 
     toggleAvailability: (
@@ -200,20 +260,26 @@ export const api = {
     ): Promise<{ message: string; product: Product }> =>
       dispatch(
         () => demoStore.toggleProductAvailability(id, is_available) as unknown as { message: string; product: Product },
-        () =>
-          request<{ message: string; product: Product }>(`/products/${id}/availability`, {
+        async () => {
+          const res = await request<{ message: string; product: Product }>(`/products/${id}/availability`, {
             method: 'PATCH',
             body: JSON.stringify({ is_available }),
-          })
+          });
+          clearApiCache('products');
+          return res;
+        }
       ),
 
     delete: (id: string): Promise<{ message: string }> =>
       dispatch(
         () => demoStore.deleteProduct(id) as unknown as { message: string },
-        () =>
-          request<{ message: string }>(`/products/${id}`, {
+        async () => {
+          const res = await request<{ message: string }>(`/products/${id}`, {
             method: 'DELETE',
-          })
+          });
+          clearApiCache('products');
+          return res;
+        }
       ),
   },
 

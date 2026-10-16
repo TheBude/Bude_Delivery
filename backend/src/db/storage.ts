@@ -39,6 +39,24 @@ export class DatabaseStore {
     deliveries: [],
   };
 
+  // High-performance O(1) in-memory Hash Maps
+  private usersById = new Map<string, User>();
+  private usersByTelegramId = new Map<number, User>();
+  private usersByEmail = new Map<string, User>();
+  private usersByGoogleId = new Map<string, User>();
+  private suppliersById = new Map<string, Supplier>();
+  private suppliersByUserId = new Map<string, Supplier>();
+  private productsById = new Map<string, Product>();
+  private productsBySupplierId = new Map<string, Product[]>();
+  private ordersById = new Map<string, Order>();
+  private orderItemsByOrderId = new Map<string, OrderItem[]>();
+  private deliveriesByOrderId = new Map<string, Delivery>();
+
+  // Debounced async persistence state
+  private persistTimer: NodeJS.Timeout | null = null;
+  private isPersisting = false;
+  private hasPendingPersist = false;
+
   constructor() {
     this.init();
   }
@@ -56,9 +74,12 @@ export class DatabaseStore {
       } catch (err) {
         console.error('[Database] Failed to parse db file', err);
       }
+    } else {
+      this.seedDefaultData();
     }
 
-    this.persist();
+    this.rebuildIndexes();
+    this.persist(true);
 
     // Async sync to PostgreSQL if connected
     initPostgresTables().then(async (connected) => {
@@ -212,8 +233,67 @@ export class DatabaseStore {
     this.data.suppliers.push(supplier1, supplier2);
     this.data.products.push(...products);
 
+    this.rebuildIndexes();
     this.persist();
     console.log('✅ [Database] Seeded 2 suppliers and 6 products successfully.');
+  }
+
+  public rebuildIndexes() {
+    this.usersById.clear();
+    this.usersByTelegramId.clear();
+    this.usersByEmail.clear();
+    this.usersByGoogleId.clear();
+    for (const u of this.data.users) {
+      this.usersById.set(u.id, u);
+      if (u.telegram_id !== null && u.telegram_id !== undefined) {
+        this.usersByTelegramId.set(Number(u.telegram_id), u);
+      }
+      if (u.email) {
+        this.usersByEmail.set(u.email.toLowerCase(), u);
+      }
+      if (u.google_id) {
+        this.usersByGoogleId.set(u.google_id, u);
+      }
+    }
+
+    this.suppliersById.clear();
+    this.suppliersByUserId.clear();
+    for (const s of this.data.suppliers) {
+      this.suppliersById.set(s.id, s);
+      this.suppliersByUserId.set(s.user_id, s);
+    }
+
+    this.productsById.clear();
+    this.productsBySupplierId.clear();
+    for (const p of this.data.products) {
+      this.productsById.set(p.id, p);
+      let list = this.productsBySupplierId.get(p.supplier_id);
+      if (!list) {
+        list = [];
+        this.productsBySupplierId.set(p.supplier_id, list);
+      }
+      list.push(p);
+    }
+
+    this.orderItemsByOrderId.clear();
+    for (const item of this.data.orderItems) {
+      let list = this.orderItemsByOrderId.get(item.order_id);
+      if (!list) {
+        list = [];
+        this.orderItemsByOrderId.set(item.order_id, list);
+      }
+      list.push(item);
+    }
+
+    this.deliveriesByOrderId.clear();
+    for (const del of this.data.deliveries) {
+      this.deliveriesByOrderId.set(del.order_id, del);
+    }
+
+    this.ordersById.clear();
+    for (const ord of this.data.orders) {
+      this.ordersById.set(ord.id, ord);
+    }
   }
 
   public async clearAllData() {
@@ -225,7 +305,8 @@ export class DatabaseStore {
       orderItems: [],
       deliveries: [],
     };
-    this.persist();
+    this.rebuildIndexes();
+    this.persist(true);
     await truncateAllPostgresTables();
     console.log('🧹 [Database] All data, users, and orders completely cleared!');
   }
@@ -242,7 +323,7 @@ export class DatabaseStore {
         await syncProductToPostgres(prod);
       }
       for (const ord of this.data.orders) {
-        const items = this.data.orderItems.filter((i) => i.order_id === ord.id);
+        const items = this.orderItemsByOrderId.get(ord.id) || [];
         await syncOrderToPostgres(ord, items);
       }
       for (const del of this.data.deliveries) {
@@ -254,11 +335,48 @@ export class DatabaseStore {
     }
   }
 
-  private persist() {
+  /**
+   * Non-blocking, debounced atomic disk persistence
+   */
+  private persist(immediate = false) {
+    if (immediate) {
+      try {
+        const payload = JSON.stringify(this.data);
+        fs.writeFileSync(DB_FILE, payload, 'utf-8');
+      } catch (err) {
+        console.error('[Database] Sync persist error:', err);
+      }
+      return;
+    }
+
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer);
+    }
+
+    this.persistTimer = setTimeout(() => {
+      this.flushToDisk();
+    }, 60);
+  }
+
+  private async flushToDisk() {
+    if (this.isPersisting) {
+      this.hasPendingPersist = true;
+      return;
+    }
+    this.isPersisting = true;
     try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
+      const payload = JSON.stringify(this.data);
+      const tmpFile = `${DB_FILE}.${Date.now()}.tmp`;
+      await fs.promises.writeFile(tmpFile, payload, 'utf-8');
+      await fs.promises.rename(tmpFile, DB_FILE);
     } catch (err) {
-      console.error('[Database] Persist error:', err);
+      console.error('[Database] Async persist error:', err);
+    } finally {
+      this.isPersisting = false;
+      if (this.hasPendingPersist) {
+        this.hasPendingPersist = false;
+        this.persist();
+      }
     }
   }
 
@@ -296,10 +414,10 @@ export class DatabaseStore {
       id: 'usr_rec_1',
       telegram_id: 2001,
       role: 'RECEIVER',
-      first_name: 'Bobur',
-      last_name: 'Mirzayev',
-      phone_primary: '+998 97 777 88 99',
-      phone_secondary: '+998 90 000 11 22',
+      first_name: 'Nodirbek',
+      last_name: 'Umarov',
+      phone_primary: '+998 97 777 00 11',
+      phone_secondary: '+998 91 222 33 44',
       language: 'uz',
       created_at: now,
       updated_at: now,
@@ -311,7 +429,7 @@ export class DatabaseStore {
     const supplier1: Supplier = {
       id: 'sup_1',
       user_id: supplierUser1.id,
-      company_name: 'Buxoro Fresh Market & Logistics',
+      company_name: 'Oqdaryo Agro Eksport',
       delivery_fee: 15000,
       is_free_delivery: false,
       created_at: now,
@@ -321,8 +439,8 @@ export class DatabaseStore {
     const supplier2: Supplier = {
       id: 'sup_2',
       user_id: supplierUser2.id,
-      company_name: 'Toshkent Mega Agro Ta\'minot',
-      delivery_fee: 0,
+      company_name: 'Zarafshon Baraka Fermer',
+      delivery_fee: 25000,
       is_free_delivery: true,
       created_at: now,
       updated_at: now,
@@ -330,13 +448,13 @@ export class DatabaseStore {
 
     this.data.suppliers = [supplier1, supplier2];
 
-    // 3. Seed Products
+    // 3. Seed Products for Suppliers
     this.data.products = [
       {
         id: 'prod_1',
         supplier_id: supplier1.id,
-        name: 'Olma (Qizil Shirin, 1kg)',
-        description: 'Buxoroning saralangan qizil shirin olmalari. Yuqori sifat va barra.',
+        name: 'Olma (Qizil Beshyulduz, 1kg)',
+        description: 'Shirin va barra, yangi uzilgan mahalliy bog\' olmalari.',
         price: 18000,
         discount_price: 15000,
         is_available: true,
@@ -477,19 +595,19 @@ export class DatabaseStore {
 
   // --- Users Operations ---
   findUserById(id: string): User | undefined {
-    return this.data.users.find((u) => u.id === id);
+    return this.usersById.get(id);
   }
 
   findUserByTelegramId(telegramId: number): User | undefined {
-    return this.data.users.find((u) => u.telegram_id !== null && u.telegram_id !== undefined && Number(u.telegram_id) === Number(telegramId));
+    return this.usersByTelegramId.get(Number(telegramId));
   }
 
   findUserByEmail(email: string): User | undefined {
-    return this.data.users.find((u) => u.email && u.email.toLowerCase() === email.toLowerCase());
+    return this.usersByEmail.get(email.toLowerCase());
   }
 
   findUserByGoogleId(googleId: string): User | undefined {
-    return this.data.users.find((u) => u.google_id === googleId);
+    return this.usersByGoogleId.get(googleId);
   }
 
   createUser(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): User {
@@ -501,6 +619,17 @@ export class DatabaseStore {
       updated_at: now,
     };
     this.data.users.push(newUser);
+    this.usersById.set(newUser.id, newUser);
+    if (newUser.telegram_id !== null && newUser.telegram_id !== undefined) {
+      this.usersByTelegramId.set(Number(newUser.telegram_id), newUser);
+    }
+    if (newUser.email) {
+      this.usersByEmail.set(newUser.email.toLowerCase(), newUser);
+    }
+    if (newUser.google_id) {
+      this.usersByGoogleId.set(newUser.google_id, newUser);
+    }
+
     this.persist();
     syncUserToPostgres(newUser);
     return newUser;
@@ -509,7 +638,23 @@ export class DatabaseStore {
   updateUser(id: string, updates: Partial<User>): User | undefined {
     const user = this.findUserById(id);
     if (!user) return undefined;
+
+    const oldEmail = user.email;
     Object.assign(user, updates, { updated_at: new Date().toISOString() });
+
+    if (oldEmail && oldEmail !== user.email) {
+      this.usersByEmail.delete(oldEmail.toLowerCase());
+    }
+    if (user.email) {
+      this.usersByEmail.set(user.email.toLowerCase(), user);
+    }
+    if (user.telegram_id !== null && user.telegram_id !== undefined) {
+      this.usersByTelegramId.set(Number(user.telegram_id), user);
+    }
+    if (user.google_id) {
+      this.usersByGoogleId.set(user.google_id, user);
+    }
+
     this.persist();
     syncUserToPostgres(user);
     return user;
@@ -546,11 +691,11 @@ export class DatabaseStore {
 
   // --- Suppliers Operations ---
   findSupplierById(id: string): Supplier | undefined {
-    return this.data.suppliers.find((s) => s.id === id);
+    return this.suppliersById.get(id);
   }
 
   findSupplierByUserId(userId: string): Supplier | undefined {
-    return this.data.suppliers.find((s) => s.user_id === userId);
+    return this.suppliersByUserId.get(userId);
   }
 
   getAllSuppliers(): Supplier[] {
@@ -569,6 +714,9 @@ export class DatabaseStore {
       updated_at: now,
     };
     this.data.suppliers.push(newSupplier);
+    this.suppliersById.set(newSupplier.id, newSupplier);
+    this.suppliersByUserId.set(newSupplier.user_id, newSupplier);
+
     this.persist();
     syncSupplierToPostgres(newSupplier);
     return newSupplier;
@@ -578,6 +726,7 @@ export class DatabaseStore {
     const supplier = this.findSupplierById(id);
     if (!supplier) return undefined;
     Object.assign(supplier, updates, { updated_at: new Date().toISOString() });
+
     this.persist();
     syncSupplierToPostgres(supplier);
     return supplier;
@@ -585,13 +734,13 @@ export class DatabaseStore {
 
   // --- Products Operations ---
   findProductById(id: string): Product | undefined {
-    return this.data.products.find((p) => p.id === id);
+    return this.productsById.get(id);
   }
 
   getProductsBySupplierId(supplierId: string, onlyAvailable = false): Product[] {
-    return this.data.products.filter(
-      (p) => p.supplier_id === supplierId && (!onlyAvailable || p.is_available)
-    );
+    const list = this.productsBySupplierId.get(supplierId) || [];
+    if (!onlyAvailable) return list;
+    return list.filter((p) => p.is_available);
   }
 
   createProduct(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Product {
@@ -603,6 +752,15 @@ export class DatabaseStore {
       updated_at: now,
     };
     this.data.products.push(newProduct);
+    this.productsById.set(newProduct.id, newProduct);
+
+    let list = this.productsBySupplierId.get(newProduct.supplier_id);
+    if (!list) {
+      list = [];
+      this.productsBySupplierId.set(newProduct.supplier_id, list);
+    }
+    list.push(newProduct);
+
     this.persist();
     syncProductToPostgres(newProduct);
     return newProduct;
@@ -612,15 +770,28 @@ export class DatabaseStore {
     const prod = this.findProductById(id);
     if (!prod) return undefined;
     Object.assign(prod, updates, { updated_at: new Date().toISOString() });
+
     this.persist();
     syncProductToPostgres(prod);
     return prod;
   }
 
   deleteProduct(id: string): boolean {
+    const prod = this.productsById.get(id);
+    if (!prod) return false;
+
     const idx = this.data.products.findIndex((p) => p.id === id);
-    if (idx === -1) return false;
-    this.data.products.splice(idx, 1);
+    if (idx !== -1) {
+      this.data.products.splice(idx, 1);
+    }
+    this.productsById.delete(id);
+
+    const list = this.productsBySupplierId.get(prod.supplier_id);
+    if (list) {
+      const sIdx = list.findIndex((p) => p.id === id);
+      if (sIdx !== -1) list.splice(sIdx, 1);
+    }
+
     this.persist();
     deleteProductFromPostgres(id);
     return true;
@@ -628,7 +799,7 @@ export class DatabaseStore {
 
   // --- Orders Operations ---
   findOrderById(id: string): Order | undefined {
-    const order = this.data.orders.find((o) => o.id === id);
+    const order = this.ordersById.get(id);
     if (!order) return undefined;
     return this.hydrateOrder(order);
   }
@@ -678,6 +849,8 @@ export class DatabaseStore {
       this.data.orderItems.push(orderItem);
     });
 
+    this.orderItemsByOrderId.set(orderId, [...createdItems]);
+
     const supplier = this.findSupplierById(orderData.supplier_id);
     const deliveryFee = supplier?.is_free_delivery ? 0 : (supplier?.delivery_fee || 0);
     const finalTotal = calculatedTotal + deliveryFee;
@@ -692,15 +865,16 @@ export class DatabaseStore {
     };
 
     this.data.orders.push(newOrder);
-    this.persist();
+    this.ordersById.set(newOrder.id, newOrder);
 
+    this.persist();
     syncOrderToPostgres(newOrder, createdItems);
 
     return this.hydrateOrder(newOrder);
   }
 
   updateOrderStatus(orderId: string, status: OrderStatus, rejectionReason?: string): Order | undefined {
-    const order = this.data.orders.find((o) => o.id === orderId);
+    const order = this.ordersById.get(orderId);
     if (!order) return undefined;
     order.status = status;
     if (rejectionReason !== undefined) {
@@ -730,6 +904,7 @@ export class DatabaseStore {
     } else {
       this.data.deliveries.push(newDelivery);
     }
+    this.deliveriesByOrderId.set(orderId, newDelivery);
 
     // Also update order status to PREPARING when delivery info is set
     this.updateOrderStatus(orderId, ORDER_STATUSES.PREPARING);
@@ -741,17 +916,18 @@ export class DatabaseStore {
   }
 
   private hydrateOrder(order: Order): Order {
-    const items = this.data.orderItems
-      .filter((i) => i.order_id === order.id)
-      .map((item) => ({
-        ...item,
-        product: this.findProductById(item.product_id),
-      }));
+    const rawItems = this.orderItemsByOrderId.get(order.id) || [];
+    const items = rawItems.map((item) => ({
+      ...item,
+      product: this.productsById.get(item.product_id),
+    }));
 
-    const delivery = this.data.deliveries.find((d) => d.order_id === order.id) || null;
-    const receiver = this.findUserById(order.receiver_id);
-    const rawSupplier = this.findSupplierById(order.supplier_id);
-    const supplier = rawSupplier ? { ...rawSupplier, user: this.findUserById(rawSupplier.user_id) } : undefined;
+    const delivery = this.deliveriesByOrderId.get(order.id) || null;
+    const receiver = this.usersById.get(order.receiver_id);
+    const rawSupplier = this.suppliersById.get(order.supplier_id);
+    const supplier = rawSupplier
+      ? { ...rawSupplier, user: rawSupplier.user_id ? this.usersById.get(rawSupplier.user_id) : undefined }
+      : undefined;
 
     return {
       ...order,

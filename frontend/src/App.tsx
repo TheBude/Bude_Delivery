@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { Header } from './components/common/Header';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { RegisterScreen } from './components/auth/RegisterScreen';
-import { ReceiverDashboard } from './components/receiver/ReceiverDashboard';
-import { SupplierDashboard } from './components/supplier/SupplierDashboard';
-import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Truck } from 'lucide-react';
+
+const ReceiverDashboard = lazy(() =>
+  import('./components/receiver/ReceiverDashboard').then((m) => ({ default: m.ReceiverDashboard }))
+);
+const SupplierDashboard = lazy(() =>
+  import('./components/supplier/SupplierDashboard').then((m) => ({ default: m.SupplierDashboard }))
+);
+const AdminDashboard = lazy(() =>
+  import('./components/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
+);
 
 export const MainContent: React.FC = () => {
   const { user, isLoading, isNewUser } = useAuth();
@@ -53,19 +60,28 @@ export const MainContent: React.FC = () => {
         onOpenAdmin={() => setAdminViewMode('ADMIN')}
       />
       <main className="flex-1 max-w-md w-full mx-auto px-4 py-4">
-        {isAdmin ? (
-          adminViewMode === 'ADMIN' ? (
-            <AdminDashboard onBack={() => setAdminViewMode('SUPPLIER')} />
-          ) : adminViewMode === 'SUPPLIER' ? (
+        <Suspense
+          fallback={
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+              <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin mb-3" />
+              <p className="text-xs font-medium">Bude Delivery yuklanmoqda...</p>
+            </div>
+          }
+        >
+          {isAdmin ? (
+            adminViewMode === 'ADMIN' ? (
+              <AdminDashboard onBack={() => setAdminViewMode('SUPPLIER')} />
+            ) : adminViewMode === 'SUPPLIER' ? (
+              <SupplierDashboard />
+            ) : (
+              <ReceiverDashboard />
+            )
+          ) : user.role === 'SUPPLIER' ? (
             <SupplierDashboard />
           ) : (
             <ReceiverDashboard />
-          )
-        ) : user.role === 'SUPPLIER' ? (
-          <SupplierDashboard />
-        ) : (
-          <ReceiverDashboard />
-        )}
+          )}
+        </Suspense>
       </main>
     </div>
   );
