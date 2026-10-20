@@ -37,7 +37,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.on('finish', () => {
     const diff = process.hrtime(start);
     const timeMs = (diff[0] * 1e3 + diff[1] * 1e-6).toFixed(2);
-    res.setHeader('X-Response-Time', `${timeMs}ms`);
     if (config.isDevelopment) {
       console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${timeMs}ms`);
     }
